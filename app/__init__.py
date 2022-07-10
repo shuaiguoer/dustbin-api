@@ -11,6 +11,7 @@ jwt = JWTManager()
 
 # 导入蓝图
 from app.views.user import user
+from app.views.menu import menu
 
 
 def create_app():
@@ -27,5 +28,6 @@ def create_app():
 
     # 注册蓝图
     app.register_blueprint(user)
+    app.register_blueprint(menu)
 
     return app
