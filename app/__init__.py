@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from app.conf.settings import Config
 from flask_jwt_extended import JWTManager
@@ -16,6 +17,9 @@ from app.views.menu import menu
 
 def create_app():
     app = Flask(__name__)
+
+    # 跨域
+    CORS(app, supports_credentials=True)
 
     # 初始化Flask配置
     app.config.from_object(Config)
