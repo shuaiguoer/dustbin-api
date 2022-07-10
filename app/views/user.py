@@ -30,7 +30,7 @@ def login():
     if password != user.password:
         return failResponseWrap(2002, "账号或者密码错误!")
 
-    access_token = create_access_token(identity=user.userId)
+    access_token = create_access_token(identity=user.userId, fresh=True)
     refresh_token = create_refresh_token(identity=user.userId)
 
     return successResponseWrap("登陆成功", data={"access_token": access_token, "refresh_token": refresh_token})
@@ -41,8 +41,7 @@ def login():
 @jwt_required(refresh=True)
 def refresh():
     identity = get_jwt_identity()
-    print(identity)
-    access_token = create_access_token(identity=identity)
+    access_token = create_access_token(identity=identity, fresh=False)
     return successResponseWrap("刷新成功", data={"access_token": access_token})
 
 
