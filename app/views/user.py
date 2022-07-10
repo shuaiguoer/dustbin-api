@@ -8,8 +8,9 @@
 """
 from flask import Blueprint, request
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
+
 from app import db
-from app.models import User, UserRole, Role, RoleMenu, Menu
+from app.models import UserRole, RoleMenu, User, Menu
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
 
 user = Blueprint('user', __name__)
@@ -43,3 +44,47 @@ def refresh():
     print(identity)
     access_token = create_access_token(identity=identity)
     return successResponseWrap("刷新成功", data={"access_token": access_token})
+
+
+# 用户信息
+@user.get("/user/info")
+@jwt_required()
+def getUserInfo():
+    userId = get_jwt_identity()
+
+    # 获取用户对象
+    user = db.session.query(User).filter_by(userId=userId).first()
+
+    # 获取用户角色关系对象
+    user_role = UserRole.query.filter_by(user_id=userId).first()
+
+    # 获取菜单
+    db_menus = db.session.query(Menu).select_from(UserRole) \
+        .join(RoleMenu, UserRole.role_id == RoleMenu.role_id) \
+        .join(Menu, RoleMenu.menu_id == Menu.id) \
+        .join(User, UserRole.user_id == User.userId) \
+        .filter(User.userId == userId).all()
+
+    menus = []
+    for menu in db_menus:
+        menus.append({
+            "label": menu.title,
+            "value": menu.name,
+            "routeName": menu.name,
+            "routeUrl": menu.path,
+            "menuType": menu.type
+        })
+
+    userInfo = {
+        "userId": user.userId,
+        "username": user.username,
+        "email": user.email,
+        "avatar": user.avatar,
+        "gender": user.gender,
+        "introduction": user.introduction,
+        "registration_time": user.registration_time,
+        "role_type": user_role.role_id,
+        "permissions": menus
+    }
+
+    return successResponseWrap(data=userInfo)
