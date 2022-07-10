@@ -26,7 +26,7 @@ def menus():
         .join(RoleMenu, UserRole.role_id == RoleMenu.role_id) \
         .join(Menu, RoleMenu.menu_id == Menu.id) \
         .join(User, UserRole.user_id == User.userId) \
-        .filter(User.userId == userId).all()
+        .filter(User.userId == userId, Menu.type != 2).all()
 
     menus = [menu.to_json() for menu in db_menus]
 
