@@ -2,13 +2,10 @@ from flask import Flask
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from app.conf.settings import Config
-from flask_jwt_extended import JWTManager
+from app.utils.JWTLoader import jwt
 
 # 实例化SQLAlchemy
 db = SQLAlchemy()  # 注意：实例化SQLAlchemy的代码必须要在引入蓝图之前
-
-# 实例化JWT
-jwt = JWTManager()
 
 # 导入蓝图
 from app.views.user import user
