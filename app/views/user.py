@@ -6,6 +6,8 @@
 # @Author  : Shuai
 # @Email   : ls12345666@qq.com
 """
+import time
+
 from flask import Blueprint, request
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
 
@@ -87,3 +89,26 @@ def getUserInfo():
     }
 
     return successResponseWrap(data=userInfo)
+
+
+# 用户注册
+@user.post("/user/register")
+def register():
+    username, password, retPassword = request.get_json().values()
+
+    # 判断用户两次密码是否一致
+    if password != retPassword:
+        return failResponseWrap(2008, "两次输入的密码不一致!")
+
+    # 判断用户名是否存在
+    user = User.query.filter_by(username=username).first()
+    if user:
+        return failResponseWrap(2005, "用户已存在")
+
+    registration_time = int(round(time.time() * 1000))
+
+    # 写入数据库
+    db.session.add(User(username=username, password=password, registration_time=registration_time))
+    db.session.commit()
+
+    return successResponseWrap("添加成功")
