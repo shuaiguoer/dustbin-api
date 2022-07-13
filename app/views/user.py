@@ -14,6 +14,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 from app import db
 from app.models import UserRole, RoleMenu, User, Menu, Role
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
+from app.modules.VerifyAuth import role_required
 
 user = Blueprint('user', __name__)
 
@@ -133,10 +134,8 @@ def register():
 
 # 查询所有用户信息
 @user.get("/user/list")
-@jwt_required()
+@role_required("admin")
 def getUserList():
-    # userId = get_jwt_identity()
-
     users = db.session.query(User, Role) \
         .join(UserRole, User.userId == UserRole.user_id) \
         .join(Role, UserRole.role_id == Role.id).all()
