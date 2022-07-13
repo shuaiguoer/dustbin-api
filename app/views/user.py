@@ -116,4 +116,24 @@ def register():
 
     return successResponseWrap("添加成功")
 
+
 # 查询所有用户信息
+@user.get("/user/list")
+@jwt_required()
+def getUserList():
+    # userId = get_jwt_identity()
+
+    users = User.query.all()
+    userList = []
+    for u in users:
+        userList.append({
+            "userId": u.userId,
+            "username": u.username,
+            "email": u.email,
+            "avatar": u.avatar,
+            "gender": u.gender,
+            "introduction": u.introduction,
+            "registration_time": u.registration_time
+        })
+
+    return successResponseWrap(data=userList)
