@@ -11,6 +11,7 @@ db = SQLAlchemy()  # 注意：实例化SQLAlchemy的代码必须要在引入蓝�
 from app.views.user import user
 from app.views.menu import menu
 from app.views.role import role
+from app.views.dict import dictionary
 
 
 def create_app():
@@ -32,5 +33,6 @@ def create_app():
     app.register_blueprint(user)
     app.register_blueprint(menu)
     app.register_blueprint(role)
+    app.register_blueprint(dictionary)
 
     return app
