@@ -12,7 +12,7 @@ from flask import Blueprint, request
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
 
 from app import db
-from app.models import UserRole, RoleMenu, User, Menu
+from app.models import UserRole, RoleMenu, User, Menu, Role
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
 
 user = Blueprint('user', __name__)
@@ -111,7 +111,16 @@ def register():
     registration_time = int(round(time.time() * 1000))
 
     # 写入数据库
-    db.session.add(User(username=username, password=password, registration_time=registration_time))
+    userInfo = User(username=username, password=password, registration_time=registration_time)
+    db.session.add(userInfo)
+
+    # 预提交(写入内存)
+    db.session.flush()
+
+    # 默认设置为普通用户
+    db.session.add(UserRole(user_id=userInfo.userId, role_id=2))
+
+    # 提交(写入硬盘)
     db.session.commit()
 
     return successResponseWrap("添加成功")
@@ -123,17 +132,22 @@ def register():
 def getUserList():
     # userId = get_jwt_identity()
 
-    users = User.query.all()
+    users = db.session.query(User, Role) \
+        .join(UserRole, User.userId == UserRole.user_id) \
+        .join(Role, UserRole.role_id == Role.id).all()
+
     userList = []
+
     for u in users:
         userList.append({
-            "userId": u.userId,
-            "username": u.username,
-            "email": u.email,
-            "avatar": u.avatar,
-            "gender": u.gender,
-            "introduction": u.introduction,
-            "registration_time": u.registration_time
+            "userId": u[0].userId,
+            "username": u[0].username,
+            "email": u[0].email,
+            "avatar": u[0].avatar,
+            "gender": u[0].gender,
+            "role": u[1].name,
+            "introduction": u[0].introduction,
+            "registration_time": u[0].registration_time
         })
 
     return successResponseWrap(data=userList)
