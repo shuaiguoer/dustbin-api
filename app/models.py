@@ -39,6 +39,7 @@ class Role(db.Model, EntityBase):
 
     id = db.Column(db.Integer, primary_key=True, info='角色主键')
     name = db.Column(db.String(20), nullable=False, info='角色名称')
+    nickname = db.Column(db.String(20), nullable=False, info='中文名称')
     description = db.Column(db.String(255), info='角色描述')
 
 
