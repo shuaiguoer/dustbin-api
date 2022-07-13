@@ -21,7 +21,8 @@ user = Blueprint('user', __name__)
 # 用户登录
 @user.post("/user/login")
 def login():
-    username, password = request.get_json().values()
+    username = request.json.get("username")
+    password = request.json.get("password")
 
     user = db.session.query(User.userId, User.password) \
         .filter(db.or_(User.username == username, User.email == username)).first()
@@ -94,7 +95,9 @@ def getUserInfo():
 # 用户注册
 @user.post("/user/register")
 def register():
-    username, password, retPassword = request.get_json().values()
+    username = request.json.get("username")
+    password = request.json.get("password")
+    retPassword = request.json.get("retPassword")
 
     # 判断用户两次密码是否一致
     if password != retPassword:
@@ -112,3 +115,5 @@ def register():
     db.session.commit()
 
     return successResponseWrap("添加成功")
+
+# 查询所有用户信息
