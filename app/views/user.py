@@ -33,7 +33,12 @@ def login():
     if password != user.password:
         return failResponseWrap(2002, "账号或者密码错误!")
 
-    access_token = create_access_token(identity=user.userId, fresh=True)
+    # 获取用户角色
+    user_role = db.session.query(User, Role) \
+        .join(UserRole, User.userId == UserRole.user_id) \
+        .join(Role, UserRole.role_id == Role.id).filter(User.userId == user.userId).first()
+
+    access_token = create_access_token(identity=user.userId, fresh=True, additional_claims={"role": user_role[1].name})
     refresh_token = create_refresh_token(identity=user.userId)
 
     return successResponseWrap("登陆成功", data={"access_token": access_token, "refresh_token": refresh_token})
@@ -145,7 +150,7 @@ def getUserList():
             "email": u[0].email,
             "avatar": u[0].avatar,
             "gender": u[0].gender,
-            "role": u[1].name,
+            "role": u[1].nickname,
             "introduction": u[0].introduction,
             "registration_time": u[0].registration_time
         })
