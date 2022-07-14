@@ -248,3 +248,18 @@ def updateUser():
     db.session.commit()
 
     return successResponseWrap("更新成功")
+
+
+# 删除用户
+@user.post("/user/delete/<int:userId>")
+@role_required("admin")
+def deleteUser(userId):
+    # 删除用户角色关系
+    UserRole.query.filter_by(user_id=userId).delete()
+
+    # 删除用户信息
+    User.query.filter_by(userId=userId)
+
+    db.session.commit()
+
+    return successResponseWrap("删除成功")
