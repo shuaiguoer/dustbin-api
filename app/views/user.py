@@ -104,6 +104,25 @@ def getUserInfo():
     return successResponseWrap(data=userInfo)
 
 
+# 查询指定用户信息
+@user.get("/user/info/<int:userId>")
+@role_required("admin")
+def getSomeUserInfo(userId):
+    user_role = db.session.query(User, UserRole).join(UserRole, User.userId == UserRole.user_id).filter(
+        User.userId == userId).first()
+    print(user_role)
+    userInfo = {
+        "userId": userId,
+        "username": user_role[0].username,
+        "roleId": user_role[1].role_id,
+        "email": user_role[0].email,
+        "gender": user_role[0].gender,
+        "introduction": user_role[0].introduction
+    }
+
+    return successResponseWrap(data=userInfo)
+
+
 # 用户注册
 @user.post("/user/register")
 def register():
