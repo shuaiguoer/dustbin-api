@@ -173,7 +173,7 @@ def getUserList():
             "email": u[0].email,
             "avatar": u[0].avatar,
             "gender": u[0].gender,
-            "role": u[1].id,
+            "roleId": u[1].id,
             "introduction": u[0].introduction,
             "registration_time": u[0].registration_time
         })
@@ -263,3 +263,35 @@ def resetUserPassword(userId):
     db.session.commit()
 
     return successResponseWrap("密码重置成功")
+
+
+# 查询符合条件的用户
+@user.get("/user/query")
+@role_required("admin")
+def queryUser():
+    username = request.args.get("username") or ''
+    email = request.args.get("email") or ''
+    roleId = request.args.get("roleId") or ''
+
+    print(username, email, roleId)
+
+    user_role = db.session.query(User, UserRole).join(UserRole) \
+        .filter(User.username.like(f'%{username}%'),
+                User.email.like(f'%{email}%'),
+                UserRole.role_id.like(f'%{roleId}%')).all()
+
+    userList = []
+
+    for i in user_role:
+        userList.append({
+            "avatar": i[0].avatar,
+            "email": i[0].email,
+            "gender": i[0].gender,
+            "introduction": i[0].introduction,
+            "registration_time": i[0].registration_time,
+            "userId": i[0].userId,
+            "username": i[0].username,
+            "roleId": i[1].role_id,
+        })
+
+    return successResponseWrap(data=userList)
