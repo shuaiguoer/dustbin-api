@@ -161,3 +161,43 @@ def getUserList():
         })
 
     return successResponseWrap(data=userList)
+
+
+# 添加用户
+@user.post("/user/add")
+@role_required("admin")
+def addUser():
+    username = request.json.get("username")
+    password = request.json.get("password")
+    retPassword = request.json.get("retPassword")
+    email = request.json.get("email")
+    gender = request.json.get("gender")
+    introduction = request.json.get("introduction")
+    roleId = request.json.get("roleId")
+
+    # 判断用户两次密码是否一致
+    if password != retPassword:
+        return failResponseWrap(2008, "两次输入的密码不一致!")
+
+    # 判断用户名是否存在
+    user = User.query.filter_by(username=username).first()
+    if user:
+        return failResponseWrap(2005, "用户已存在")
+
+    registration_time = int(round(time.time() * 1000))
+
+    # 写入数据库
+    userInfo = User(username=username, password=password, email=email, gender=gender, introduction=introduction,
+                    registration_time=registration_time)
+    db.session.add(userInfo)
+
+    # 预提交(写入内存)
+    db.session.flush()
+
+    # 默认设置为普通用户
+    db.session.add(UserRole(user_id=userInfo.userId, role_id=roleId))
+
+    # 提交(写入硬盘)
+    db.session.commit()
+
+    return successResponseWrap("添加成功")
