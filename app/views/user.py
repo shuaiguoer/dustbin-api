@@ -110,7 +110,6 @@ def getUserInfo():
 def getSomeUserInfo(userId):
     user_role = db.session.query(User, UserRole).join(UserRole, User.userId == UserRole.user_id).filter(
         User.userId == userId).first()
-    print(user_role)
     userInfo = {
         "userId": userId,
         "username": user_role[0].username,
@@ -220,3 +219,32 @@ def addUser():
     db.session.commit()
 
     return successResponseWrap("添加成功")
+
+
+# 更新用户信息
+@user.post("/user/update")
+@role_required("admin")
+def updateUser():
+    userId = request.json.get("userId")
+    username = request.json.get("username")
+    password = request.json.get("password")
+    retPassword = request.json.get("retPassword")
+    email = request.json.get("email")
+    gender = request.json.get("gender")
+    introduction = request.json.get("introduction")
+    roleId = request.json.get("roleId")
+
+    if password != retPassword:
+        return failResponseWrap(2008, "两次输入的密码不一致!")
+
+    # 更新用户信息
+    User.query.filter_by(userId=userId).update(
+        {"username": username, "password": password, "email": email, "gender": gender, "introduction": introduction}
+    )
+
+    # 更新用户角色
+    UserRole.query.filter_by(user_id=userId).update({"role_id": roleId})
+
+    db.session.commit()
+
+    return successResponseWrap("更新成功")
