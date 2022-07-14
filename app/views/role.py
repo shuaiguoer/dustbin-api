@@ -23,7 +23,7 @@ def getRoleList():
     roleList = []
     for r in roles:
         roleList.append({
-            "label": r.name,
+            "label": r.nickname,
             "value": r.id
         })
     return successResponseWrap(data=roleList)
