@@ -50,7 +50,13 @@ def login():
 @jwt_required(refresh=True)
 def refresh():
     identity = get_jwt_identity()
-    access_token = create_access_token(identity=identity, fresh=False)
+
+    # 获取用户角色
+    user_role = db.session.query(User, Role) \
+        .join(UserRole, User.userId == UserRole.user_id) \
+        .join(Role, UserRole.role_id == Role.id).filter(User.userId == identity).first()
+
+    access_token = create_access_token(identity=identity, fresh=False, additional_claims={"role": user_role[1].name})
     return successResponseWrap("刷新成功", data={"access_token": access_token})
 
 
@@ -91,7 +97,7 @@ def getUserInfo():
         "gender": user.gender,
         "introduction": user.introduction,
         "registration_time": user.registration_time,
-        "role_type": user_role.role_id,
+        "roleId": user_role.role_id,
         "permissions": menus
     }
 
@@ -136,20 +142,20 @@ def register():
 @user.get("/user/list")
 @role_required("admin")
 def getUserList():
-    users = db.session.query(User, Role) \
+    user_role = db.session.query(User, Role) \
         .join(UserRole, User.userId == UserRole.user_id) \
         .join(Role, UserRole.role_id == Role.id).all()
 
     userList = []
 
-    for u in users:
+    for u in user_role:
         userList.append({
             "userId": u[0].userId,
             "username": u[0].username,
             "email": u[0].email,
             "avatar": u[0].avatar,
             "gender": u[0].gender,
-            "role": u[1].nickname,
+            "role": u[1].id,
             "introduction": u[0].introduction,
             "registration_time": u[0].registration_time
         })
