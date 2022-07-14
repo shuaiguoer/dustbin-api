@@ -60,7 +60,7 @@ def refresh():
     return successResponseWrap("刷新成功", data={"access_token": access_token})
 
 
-# 用户信息
+# 获取用户信息
 @user.get("/user/info")
 @jwt_required()
 def getUserInfo():
@@ -104,7 +104,7 @@ def getUserInfo():
     return successResponseWrap(data=userInfo)
 
 
-# 查询指定用户信息
+# 获取指定用户信息
 @user.get("/user/info/<int:userId>")
 @role_required("admin")
 def getSomeUserInfo(userId):
@@ -186,16 +186,10 @@ def getUserList():
 @role_required("admin")
 def addUser():
     username = request.json.get("username")
-    password = request.json.get("password")
-    retPassword = request.json.get("retPassword")
     email = request.json.get("email")
     gender = request.json.get("gender")
     introduction = request.json.get("introduction")
     roleId = request.json.get("roleId")
-
-    # 判断用户两次密码是否一致
-    if password != retPassword:
-        return failResponseWrap(2008, "两次输入的密码不一致!")
 
     # 判断用户名是否存在
     user = User.query.filter_by(username=username).first()
@@ -205,7 +199,7 @@ def addUser():
     registration_time = int(round(time.time() * 1000))
 
     # 写入数据库
-    userInfo = User(username=username, password=password, email=email, gender=gender, introduction=introduction,
+    userInfo = User(username=username, email=email, gender=gender, introduction=introduction,
                     registration_time=registration_time)
     db.session.add(userInfo)
 
@@ -222,24 +216,19 @@ def addUser():
 
 
 # 更新用户信息
-@user.post("/user/update")
+@user.put("/user/update")
 @role_required("admin")
 def updateUser():
     userId = request.json.get("userId")
     username = request.json.get("username")
-    password = request.json.get("password")
-    retPassword = request.json.get("retPassword")
     email = request.json.get("email")
     gender = request.json.get("gender")
     introduction = request.json.get("introduction")
     roleId = request.json.get("roleId")
 
-    if password != retPassword:
-        return failResponseWrap(2008, "两次输入的密码不一致!")
-
     # 更新用户信息
     User.query.filter_by(userId=userId).update(
-        {"username": username, "password": password, "email": email, "gender": gender, "introduction": introduction}
+        {"username": username, "email": email, "gender": gender, "introduction": introduction}
     )
 
     # 更新用户角色
@@ -251,14 +240,14 @@ def updateUser():
 
 
 # 删除用户
-@user.post("/user/delete/<int:userId>")
+@user.delete("/user/delete/<int:userId>")
 @role_required("admin")
 def deleteUser(userId):
     # 删除用户角色关系
     UserRole.query.filter_by(user_id=userId).delete()
 
     # 删除用户信息
-    User.query.filter_by(userId=userId)
+    User.query.filter_by(userId=userId).delete()
 
     db.session.commit()
 

@@ -59,7 +59,7 @@ class User(db.Model, EntityBase):
 
     userId = db.Column(db.Integer, primary_key=True, info='用户主键')
     username = db.Column(db.String(50), nullable=False, info='用户名称')
-    password = db.Column(db.String(50), nullable=False, info='用户密码')
+    password = db.Column(db.String(50), server_default=db.FetchedValue(), nullable=False, info='用户密码')
     email = db.Column(db.String(50), info='用户邮箱')
     avatar = db.Column(db.String(255), info='用户头像地址')
     gender = db.Column(db.Integer, server_default=db.FetchedValue(), info='用户性别')
