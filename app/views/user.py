@@ -252,3 +252,14 @@ def deleteUser(userId):
     db.session.commit()
 
     return successResponseWrap("删除成功")
+
+
+# 重置用户密码
+@user.put("/user/reset-password/<int:userId>")
+@role_required("admin")
+def resetUserPassword(userId):
+    User.query.filter_by(userId=userId).update({"password": "123456"})
+
+    db.session.commit()
+
+    return successResponseWrap("密码重置成功")
