@@ -7,14 +7,17 @@
 # @Email   : ls12345666@qq.com
 """
 import time
+import random
 
 from flask import Blueprint, request
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
 
 from app import db
 from app.models import UserRole, RoleMenu, User, Menu, Role
-from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
 from app.modules.VerifyAuth import role_required
+from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
+from app.utils.SendMail import send_email
+from app.utils.ConnectionRedis import redisConnection
 
 user = Blueprint('user', __name__)
 
@@ -128,20 +131,43 @@ def register():
     username = request.json.get("username")
     password = request.json.get("password")
     retPassword = request.json.get("retPassword")
+    email = request.json.get("email")
+    code = request.json.get("code")
 
     # 判断用户两次密码是否一致
     if password != retPassword:
-        return failResponseWrap(2008, "两次输入的密码不一致!")
+        return failResponseWrap(2009, "两次输入的密码不一致!")
 
     # 判断用户名是否存在
     user = User.query.filter_by(username=username).first()
     if user:
         return failResponseWrap(2005, "用户已存在")
 
+    # 判断邮箱是否重复绑定
+    emails = db.session.query(User.email).all()
+    emailList = [e[0] for e in emails]
+
+    if email in emailList:
+        return failResponseWrap(2006, "邮箱重复绑定")
+
+    # 连接redis
+    redis_1 = redisConnection(1)
+    if not redis_1.exists(email):
+        return failResponseWrap(2007, "验证码已过期")
+
+    # 获取验证码
+    redis_code = redis_1.get(email)
+
+    if code != redis_code:
+        return failResponseWrap(2008, "验证码错误")
+
+    # 验证成功则删除缓存的验证码
+    redis_1.delete(email)
+
     registration_time = int(round(time.time() * 1000))
 
     # 写入数据库
-    userInfo = User(username=username, password=password, registration_time=registration_time)
+    userInfo = User(username=username, password=password, email=email, registration_time=registration_time)
     db.session.add(userInfo)
 
     # 预提交(写入内存)
@@ -154,6 +180,29 @@ def register():
     db.session.commit()
 
     return successResponseWrap("添加成功")
+
+
+# 生成验证码
+@user.post("/user/generate_code")
+def generate_code():
+    email = request.json.get("email")
+
+    if not email:
+        return failResponseWrap(1002, "邮箱地址不能为空")
+
+    # 随机生成验证码
+    code = str(random.randint(1000, 9999))
+
+    # 连接redis数据库
+    redis_1 = redisConnection(1)
+
+    # 将验证码写入redis数据库, 并设置过期时间为300秒
+    redis_1.setex(email, 300, code)
+
+    # 发送邮件
+    send_email("Dustbin-验证码", code, [email])
+
+    return successResponseWrap("验证码生成成功")
 
 
 # 查询所有用户信息
@@ -272,8 +321,6 @@ def queryUser():
     username = request.args.get("username") or ''
     email = request.args.get("email") or ''
     roleId = request.args.get("roleId") or ''
-
-    print(username, email, roleId)
 
     user_role = db.session.query(User, UserRole).join(UserRole) \
         .filter(User.username.like(f'%{username}%'),
