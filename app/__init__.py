@@ -3,9 +3,13 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from app.conf.settings import Config
 from app.utils.JWTLoader import jwt
+from flask_mail import Mail
 
 # 实例化SQLAlchemy
 db = SQLAlchemy()  # 注意：实例化SQLAlchemy的代码必须要在引入蓝图之前
+
+# 实例化Mail
+mail = Mail()
 
 # 导入蓝图
 from app.views.user import user
@@ -28,6 +32,9 @@ def create_app():
 
     # 初始化JWT
     jwt.init_app(app)
+
+    # 初始化Mail
+    mail.init_app(app)
 
     # 注册蓝图
     app.register_blueprint(user)
