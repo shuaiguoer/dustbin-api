@@ -26,7 +26,8 @@ USER_NOT_EXIST = (2004, "用户不存在"),
 USER_HAS_EXISTED = (2005, "用户已存在"),
 USER_DUPLICATE_BINDING = (2006, "账号重复绑定"),
 USER_CODE_EXPIRED = (2007, "验证码过期")
-USER_PASSWORD_ATYPISM = (2008, "用户确认密码不一致")
+USER_CODE_ERROR = (2008, "验证码错误")
+USER_PASSWORD_ATYPISM = (2009, "用户确认密码不一致")
 
 # 权限错误：3001-3999
 PERMISSION_NO_ACCESS = (3001, "无访问权限")
