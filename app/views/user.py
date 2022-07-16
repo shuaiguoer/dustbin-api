@@ -134,7 +134,15 @@ def register():
     email = request.json.get("email")
     code = request.json.get("code")
 
-    # 判断用户两次密码是否一致
+    if not username:
+        return failResponseWrap(1002, "用户名不能为空")
+
+    if not email:
+        return failResponseWrap(1002, "邮箱地址不能为空")
+
+    if not code:
+        return failResponseWrap(1002, "验证码不能为空")
+
     if password != retPassword:
         return failResponseWrap(2009, "两次输入的密码不一致!")
 
@@ -203,6 +211,38 @@ def generate_code():
     send_email("Dustbin-验证码", code, [email])
 
     return successResponseWrap("验证码生成成功")
+
+
+# 找回密码
+@user.post("/user/recover_password")
+def recover_password():
+    email = request.json.get("email")
+    password = request.json.get("password")
+    retPassword = request.json.get("retPassword")
+    code = request.json.get("code")
+
+    if not email:
+        return failResponseWrap(1002, "邮箱地址不能为空")
+
+    if not code:
+        return failResponseWrap(1002, "验证码不能为空")
+
+    if password != retPassword:
+        return failResponseWrap(2009, "两次输入的密码不一致!")
+
+    # 检查验证码是否正确
+    redis_1 = redisConnection(1)
+    if not redis_1.exists(email):
+        return failResponseWrap(2007, "验证码已过期")
+    redis_code = redis_1.get(email)
+    if code != redis_code:
+        return failResponseWrap(2008, "验证码错误")
+    redis_1.delete(email)
+
+    User.query.filter_by(email=email).update({"password": password})
+    db.session.commit()
+
+    return successResponseWrap("密码修改成功")
 
 
 # 查询所有用户信息
