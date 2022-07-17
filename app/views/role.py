@@ -45,3 +45,23 @@ def getRoleList():
     }
 
     return successResponseWrap(data=roleData)
+
+
+# 获取角色的所有权限列表
+@role.get("/role/permissions")
+@role_required("admin")
+def getRolePermissionList():
+    db_menu = db.session.query(Menu.id, Menu.title, Menu.pid).all()
+
+    menuList = []
+    for menu in db_menu:
+        menuList.append({
+            "key": menu[0],
+            "label": menu[1],
+            "pid": menu[2]
+        })
+
+    menuTree = generateMenuTree(menuList, 0, "key")
+    permissionList = filterRoleTree(menuTree)
+
+    return successResponseWrap(data=permissionList)
