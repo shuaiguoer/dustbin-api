@@ -71,19 +71,51 @@ def getRolePermissionList():
 @role.get("/role/info")
 @role_required("admin")
 def getRoleInfo():
-    roleId = request.args.get("roleId")
+    roleId = request.args.get("roleId", type=int)
 
     # 有查询参数: 查询指定角色的所有权限ID列表
-    db_menu_id = db.session.query(RoleMenu.menu_id).filter_by(role_id=roleId).all()
+    db_menu_id = db.session.query(RoleMenu.menu_id).filter_by(role_id=roleId, deleted=0).all()
     menuList = [m[0] for m in db_menu_id]
 
     # 查询角色基本信息
     db_role = Role.query.filter_by(id=roleId).first()
 
     permissionData = {
-        "permissionIds": menuList,
+        "roleId": roleId,
         "roleName": db_role.nickname,
-        "description": db_role.description
+        "description": db_role.description,
+        "permissionIds": menuList,
     }
 
     return successResponseWrap(data=permissionData)
+
+
+# 更新角色信息
+@role.put("/role/update")
+@role_required("admin")
+def updateRole():
+    roleId = request.json.get("roleId")
+    roleName = request.json.get("roleName")
+    description = request.json.get("description")
+    permissionIds = set(request.json.get("permissionIds"))
+
+    # 更新角色信息
+    Role.query.filter_by(id=roleId).update({"nickname": roleName, "description": description})
+
+    # 查询角色菜单
+    db_role_menu = db.session.query(RoleMenu.menu_id).filter_by(role_id=roleId, deleted=0).all()
+    db_permissionIds = set([mid[0] for mid in db_role_menu])
+
+    # 更新角色菜单关系(删除)
+    deleteList = db_permissionIds - permissionIds
+    for delete_id in deleteList:
+        RoleMenu.query.filter(RoleMenu.role_id == roleId, RoleMenu.menu_id == delete_id).update({"deleted": 1})
+
+    # 更新角色菜单关系(新增)
+    insertList = permissionIds - db_permissionIds
+    for insert_id in insertList:
+        db.session.add(RoleMenu(role_id=roleId, menu_id=insert_id))
+
+    db.session.commit()
+
+    return successResponseWrap("更新成功")
