@@ -119,3 +119,26 @@ def updateRole():
     db.session.commit()
 
     return successResponseWrap("更新成功")
+
+
+# 添加角色
+@role.post("/role/add")
+@role_required("admin")
+def addRole():
+    roleName = request.json.get("roleName")
+    description = request.json.get("description")
+    permissionIds = request.json.get("permissionIds")
+
+    # 添加角色信息
+    roleInfo = Role(nickname=roleName, description=description)
+    db.session.add(roleInfo)
+
+    db.session.flush()
+
+    permissionObj = [RoleMenu(role_id=roleInfo.id, menu_id=mid) for mid in permissionIds]
+
+    db.session.add_all(permissionObj)
+
+    db.session.commit()
+
+    return successResponseWrap("添加成功")
