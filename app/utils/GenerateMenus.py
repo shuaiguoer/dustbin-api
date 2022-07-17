@@ -11,18 +11,25 @@
 
 
 # 生成树形菜单
-def generateMenuTree(baseMenuList, pid):
-    MenuTree = []
-    # 获取父节点
+def generateMenuTree(baseMenuList, pid, subField="id"):
+    menuTree = []
     for menu in baseMenuList:
-        if menu['pid'] == pid:
-            MenuTree.append(menu)
+        if menu.get("pid") == pid:
+            children = generateMenuTree(baseMenuList, menu.get(subField), "key")
+            if children:
+                menu['children'] = children
+            menuTree.append(menu)
 
-    # 递归生成子节点
-    for item in MenuTree:
-        item["children"] = generateMenuTree(baseMenuList, item["id"])
+    return menuTree
 
-    return MenuTree
+
+# 过滤掉角色权限的pid
+def filterRoleTree(menuTree):
+    for menu in menuTree:
+        del menu["pid"]
+        if menu.get("children"):
+            filterRoleTree(menu.get("children"))
+    return menuTree
 
 
 # 过滤菜单树
