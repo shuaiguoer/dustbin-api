@@ -142,3 +142,20 @@ def addRole():
     db.session.commit()
 
     return successResponseWrap("添加成功")
+
+
+# 删除角色
+@role.delete("/role/delete")
+@role_required("admin")
+def deleteRole():
+    roleId = request.json.get("roleId")
+
+    # 删除角色菜单关系
+    RoleMenu.query.filter_by(role_id=roleId).delete()
+
+    # 删除角色
+    Role.query.filter_by(id=roleId).delete()
+
+    db.session.commit()
+
+    return successResponseWrap("删除成功")
