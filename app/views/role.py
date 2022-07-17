@@ -65,3 +65,25 @@ def getRolePermissionList():
     permissionList = filterRoleTree(menuTree)
 
     return successResponseWrap(data=permissionList)
+
+
+# 获取角色信息
+@role.get("/role/info")
+@role_required("admin")
+def getRoleInfo():
+    roleId = request.args.get("roleId")
+
+    # 有查询参数: 查询指定角色的所有权限ID列表
+    db_menu_id = db.session.query(RoleMenu.menu_id).filter_by(role_id=roleId).all()
+    menuList = [m[0] for m in db_menu_id]
+
+    # 查询角色基本信息
+    db_role = Role.query.filter_by(id=roleId).first()
+
+    permissionData = {
+        "permissionIds": menuList,
+        "roleName": db_role.nickname,
+        "description": db_role.description
+    }
+
+    return successResponseWrap(data=permissionData)
