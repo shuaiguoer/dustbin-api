@@ -7,12 +7,12 @@
 # @Email   : ls12345666@qq.com
 """
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 
 from app import db
 from app.models import Role, Menu, RoleMenu
 from app.utils.ResponseWrap import successResponseWrap
-from app.modules.VerifyAuth import role_required
+from app.modules.VerifyAuth import role_required, permission_required
 from app.utils.GenerateMenus import generateMenuTree, filterRoleTree
 
 role = Blueprint('role', __name__)
@@ -20,7 +20,7 @@ role = Blueprint('role', __name__)
 
 # 获取角色列表
 @role.get("/role/list")
-@jwt_required()
+@permission_required("role-list")
 def getRoleList():
     page = request.args.get("page", type=int)
     pageSize = request.args.get("pageSize", type=int)
@@ -49,7 +49,7 @@ def getRoleList():
 
 # 获取角色的所有权限列表
 @role.get("/role/permissions")
-@role_required("admin")
+@permission_required("role-read")
 def getRolePermissionList():
     db_menu = db.session.query(Menu.id, Menu.title, Menu.pid).all()
 
@@ -69,7 +69,7 @@ def getRolePermissionList():
 
 # 获取角色信息
 @role.get("/role/info")
-@role_required("admin")
+@permission_required("role-read")
 def getRoleInfo():
     roleId = request.args.get("roleId", type=int)
 
@@ -92,7 +92,7 @@ def getRoleInfo():
 
 # 更新角色信息
 @role.put("/role/update")
-@role_required("admin")
+@permission_required("role-update")
 def updateRole():
     roleId = request.json.get("roleId")
     roleName = request.json.get("roleName")
@@ -123,7 +123,7 @@ def updateRole():
 
 # 添加角色
 @role.post("/role/add")
-@role_required("admin")
+@permission_required("role-add")
 def addRole():
     roleName = request.json.get("roleName")
     description = request.json.get("description")
@@ -146,7 +146,7 @@ def addRole():
 
 # 删除角色
 @role.delete("/role/delete")
-@role_required("admin")
+@permission_required("role-delete")
 def deleteRole():
     roleId = request.json.get("roleId")
 

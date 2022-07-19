@@ -14,7 +14,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 
 from app import db
 from app.models import UserRole, RoleMenu, User, Menu, Role
-from app.modules.VerifyAuth import role_required
+from app.modules.VerifyAuth import role_required, permission_required
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
 from app.utils.SendMail import send_email
 from app.utils.ConnectionRedis import redisConnection
@@ -109,7 +109,7 @@ def getUserInfo():
 
 # 获取指定用户信息
 @user.get("/user/info/<int:userId>")
-@role_required("admin")
+@permission_required("user-read")
 def getSomeUserInfo(userId):
     user_role = db.session.query(User, UserRole).join(UserRole, User.userId == UserRole.user_id).filter(
         User.userId == userId).first()
@@ -247,7 +247,7 @@ def recover_password():
 
 # 查询所有用户信息
 @user.get("/user/list")
-@role_required("admin")
+@permission_required("user-list")
 def getUserList():
     user_role = db.session.query(User, Role) \
         .join(UserRole, User.userId == UserRole.user_id) \
@@ -272,7 +272,7 @@ def getUserList():
 
 # 添加用户
 @user.post("/user/add")
-@role_required("admin")
+@permission_required("user-add")
 def addUser():
     username = request.json.get("username")
     email = request.json.get("email")
@@ -306,7 +306,7 @@ def addUser():
 
 # 更新用户信息
 @user.put("/user/update")
-@role_required("admin")
+@permission_required("user-update")
 def updateUser():
     userId = request.json.get("userId")
     username = request.json.get("username")
@@ -330,7 +330,7 @@ def updateUser():
 
 # 删除用户
 @user.delete("/user/delete/<int:userId>")
-@role_required("admin")
+@permission_required("user-delete")
 def deleteUser(userId):
     # 删除用户角色关系
     UserRole.query.filter_by(user_id=userId).delete()
@@ -345,7 +345,7 @@ def deleteUser(userId):
 
 # 重置用户密码
 @user.put("/user/reset-password/<int:userId>")
-@role_required("admin")
+@permission_required("user-update")
 def resetUserPassword(userId):
     User.query.filter_by(userId=userId).update({"password": "123456"})
 
@@ -356,7 +356,7 @@ def resetUserPassword(userId):
 
 # 查询符合条件的用户
 @user.get("/user/query")
-@role_required("admin")
+@permission_required("user-list")
 def queryUser():
     username = request.args.get("username") or ''
     email = request.args.get("email") or ''
