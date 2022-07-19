@@ -37,12 +37,7 @@ def login():
     if password != user.password:
         return failResponseWrap(2002, "账号或者密码错误!")
 
-    # 获取用户角色
-    user_role = db.session.query(User, Role) \
-        .join(UserRole, User.userId == UserRole.user_id) \
-        .join(Role, UserRole.role_id == Role.id).filter(User.userId == user.userId).first()
-
-    access_token = create_access_token(identity=user.userId, fresh=True, additional_claims={"role": user_role[1].name})
+    access_token = create_access_token(identity=user.userId, fresh=True)
     refresh_token = create_refresh_token(identity=user.userId)
 
     return successResponseWrap("登陆成功", data={"access_token": access_token, "refresh_token": refresh_token})
@@ -55,11 +50,9 @@ def refresh():
     identity = get_jwt_identity()
 
     # 获取用户角色
-    user_role = db.session.query(User, Role) \
-        .join(UserRole, User.userId == UserRole.user_id) \
-        .join(Role, UserRole.role_id == Role.id).filter(User.userId == identity).first()
+    db_role = Role.query.join(UserRole).filter_by(user_id=identity).first()
 
-    access_token = create_access_token(identity=identity, fresh=False, additional_claims={"role": user_role[1].name})
+    access_token = create_access_token(identity=identity, fresh=False, additional_claims={"role": db_role.name})
     return successResponseWrap("刷新成功", data={"access_token": access_token})
 
 
@@ -111,12 +104,14 @@ def getUserInfo():
 @user.get("/user/info/<int:userId>")
 @permission_required("user-read")
 def getSomeUserInfo(userId):
-    user_role = db.session.query(User, UserRole).join(UserRole, User.userId == UserRole.user_id).filter(
-        User.userId == userId).first()
+    user_role = db.session.query(User, UserRole.role_id) \
+        .join(UserRole, User.userId == UserRole.user_id) \
+        .filter(User.userId == userId).first()
+
     userInfo = {
         "userId": userId,
         "username": user_role[0].username,
-        "roleId": user_role[1].role_id,
+        "roleId": user_role[1],
         "email": user_role[0].email,
         "gender": user_role[0].gender,
         "introduction": user_role[0].introduction
@@ -249,11 +244,12 @@ def recover_password():
 @user.get("/user/list")
 @permission_required("user-list")
 def getUserList():
-    user_role = db.session.query(User, Role) \
+    user_role = db.session.query(User, Role.id) \
         .join(UserRole, User.userId == UserRole.user_id) \
-        .join(Role, UserRole.role_id == Role.id).all()
+        .join(Role, UserRole.role_id == Role.id)
 
     userList = []
+    print(user_role)
 
     for u in user_role:
         userList.append({
@@ -262,7 +258,7 @@ def getUserList():
             "email": u[0].email,
             "avatar": u[0].avatar,
             "gender": u[0].gender,
-            "roleId": u[1].id,
+            "roleId": u[1],
             "introduction": u[0].introduction,
             "registration_time": u[0].registration_time
         })
@@ -316,9 +312,8 @@ def updateUser():
     roleId = request.json.get("roleId")
 
     # 更新用户信息
-    User.query.filter_by(userId=userId).update(
-        {"username": username, "email": email, "gender": gender, "introduction": introduction}
-    )
+    User.query.filter_by(userId=userId) \
+        .update({"username": username, "email": email, "gender": gender, "introduction": introduction})
 
     # 更新用户角色
     UserRole.query.filter_by(user_id=userId).update({"role_id": roleId})
@@ -362,7 +357,8 @@ def queryUser():
     email = request.args.get("email") or ''
     roleId = request.args.get("roleId") or ''
 
-    user_role = db.session.query(User, UserRole).join(UserRole) \
+    user_role = db.session.query(User, UserRole.role_id) \
+        .join(UserRole) \
         .filter(User.username.like(f'%{username}%'),
                 User.email.like(f'%{email}%'),
                 UserRole.role_id.like(f'%{roleId}%')).all()
@@ -378,7 +374,7 @@ def queryUser():
             "registration_time": i[0].registration_time,
             "userId": i[0].userId,
             "username": i[0].username,
-            "roleId": i[1].role_id,
+            "roleId": i[1],
         })
 
     return successResponseWrap(data=userList)
