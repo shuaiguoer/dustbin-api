@@ -246,10 +246,9 @@ def recover_password():
 def getUserList():
     user_role = db.session.query(User, Role.id) \
         .join(UserRole, User.userId == UserRole.user_id) \
-        .join(Role, UserRole.role_id == Role.id)
+        .join(Role, UserRole.role_id == Role.id).all()
 
     userList = []
-    print(user_role)
 
     for u in user_role:
         userList.append({
