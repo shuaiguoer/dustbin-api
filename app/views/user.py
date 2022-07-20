@@ -63,7 +63,7 @@ def getUserInfo():
     userId = get_jwt_identity()
 
     # 获取用户对象
-    user = db.session.query(User).filter_by(userId=userId).first()
+    user = User.query.filter_by(userId=userId).first()
 
     # 获取用户角色关系对象
     user_role = UserRole.query.filter_by(user_id=userId).first()
@@ -104,17 +104,15 @@ def getUserInfo():
 @user.get("/user/info/<int:userId>")
 @permission_required("user-read")
 def getSomeUserInfo(userId):
-    user_role = db.session.query(User, UserRole.role_id) \
-        .join(UserRole, User.userId == UserRole.user_id) \
-        .filter(User.userId == userId).first()
+    user = User.query.filter(User.userId == userId).first()
 
     userInfo = {
         "userId": userId,
-        "username": user_role[0].username,
-        "roleId": user_role[1],
-        "email": user_role[0].email,
-        "gender": user_role[0].gender,
-        "introduction": user_role[0].introduction
+        "username": user.username,
+        "email": user.email,
+        "gender": user.gender,
+        "introduction": user.introduction,
+        "roleId": user.user_roles[0].role_id
     }
 
     return successResponseWrap(data=userInfo)
@@ -244,22 +242,22 @@ def recover_password():
 @user.get("/user/list")
 @permission_required("user-list")
 def getUserList():
-    user_role = db.session.query(User, Role.id) \
+    users = db.session.query(User) \
         .join(UserRole, User.userId == UserRole.user_id) \
         .join(Role, UserRole.role_id == Role.id).all()
 
     userList = []
 
-    for u in user_role:
+    for u in users:
         userList.append({
-            "userId": u[0].userId,
-            "username": u[0].username,
-            "email": u[0].email,
-            "avatar": u[0].avatar,
-            "gender": u[0].gender,
-            "roleId": u[1],
-            "introduction": u[0].introduction,
-            "registration_time": u[0].registration_time
+            "userId": u.userId,
+            "username": u.username,
+            "email": u.email,
+            "avatar": u.avatar,
+            "gender": u.gender,
+            "introduction": u.introduction,
+            "registration_time": u.registration_time,
+            "roleId": u.user_roles[0].role_id,
         })
 
     return successResponseWrap(data=userList)
@@ -356,7 +354,7 @@ def queryUser():
     email = request.args.get("email") or ''
     roleId = request.args.get("roleId") or ''
 
-    user_role = db.session.query(User, UserRole.role_id) \
+    users = User.query \
         .join(UserRole) \
         .filter(User.username.like(f'%{username}%'),
                 User.email.like(f'%{email}%'),
@@ -364,16 +362,16 @@ def queryUser():
 
     userList = []
 
-    for i in user_role:
+    for u in users:
         userList.append({
-            "avatar": i[0].avatar,
-            "email": i[0].email,
-            "gender": i[0].gender,
-            "introduction": i[0].introduction,
-            "registration_time": i[0].registration_time,
-            "userId": i[0].userId,
-            "username": i[0].username,
-            "roleId": i[1],
+            "avatar": u.avatar,
+            "email": u.email,
+            "gender": u.gender,
+            "introduction": u.introduction,
+            "registration_time": u.registration_time,
+            "userId": u.userId,
+            "username": u.username,
+            "roleId": u.user_roles[0].role_id,
         })
 
     return successResponseWrap(data=userList)
