@@ -73,7 +73,7 @@ def getUserInfo():
         .join(RoleMenu, UserRole.role_id == RoleMenu.role_id) \
         .join(Menu, RoleMenu.menu_id == Menu.id) \
         .join(User, UserRole.user_id == User.userId) \
-        .filter(User.userId == userId).all()
+        .filter(User.userId == userId, RoleMenu.deleted == 0).all()
 
     menus = []
     for menu in db_menus:
