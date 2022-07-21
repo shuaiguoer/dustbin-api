@@ -64,3 +64,28 @@ def getMenuInfo():
     }
 
     return successResponseWrap(data=menuData)
+
+
+# 更新菜单信息
+@menu.put("/menu/update")
+@permission_required("menu-update")
+def updateMenu():
+    menuId = request.json.get("id")
+    name = request.json.get("name")
+    title = request.json.get("title")
+    path = request.json.get("path")
+    redirect = request.json.get("redirect")
+    hidden = request.json.get("hidden")
+    menuType = request.json.get("type")
+    component = request.json.get("component")
+    icon = request.json.get("icon")
+    sort = request.json.get("sort")
+    pid = request.json.get("pid")
+
+    Menu.query.filter_by(id=menuId) \
+        .update({"name": name, "title": title, "path": path, "redirect": redirect, "hidden": hidden, "type": menuType,
+                 "component": component, "icon": icon, "sort": sort, "pid": pid})
+
+    db.session.commit()
+
+    return successResponseWrap("更新成功")
