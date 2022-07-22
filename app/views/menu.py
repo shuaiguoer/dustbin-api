@@ -89,3 +89,20 @@ def updateMenu():
     db.session.commit()
 
     return successResponseWrap("更新成功")
+
+
+# 删除菜单
+@menu.delete("/menu/delete")
+@permission_required("menu-delete")
+def deleteMenu():
+    menuId = request.json.get("menuId")
+
+    # 删除角色菜单关系
+    RoleMenu.query.filter_by(menu_id=menuId).delete()
+
+    # 删除菜单
+    Menu.query.filter_by(id=menuId).delete()
+
+    db.session.commit()
+
+    return successResponseWrap("删除成功")
