@@ -101,8 +101,35 @@ def deleteMenu():
     RoleMenu.query.filter_by(menu_id=menuId).delete()
 
     # 删除菜单
-    Menu.query.filter_by(id=menuId).delete()
+    result = Menu.query.filter_by(id=menuId).delete()
+
+    if not result:
+        return failResponseWrap(5001, "未找到您要删除的菜单")
 
     db.session.commit()
 
     return successResponseWrap("删除成功")
+
+
+# 添加菜单
+@menu.post("/menu/add")
+@permission_required("menu-add")
+def addMenu():
+    name = request.json.get("name")
+    title = request.json.get("title")
+    path = request.json.get("path") or ''
+    redirect = request.json.get("redirect") or ''
+    hidden = request.json.get("hidden")
+    menuType = request.json.get("type")
+    component = request.json.get("component") or ''
+    icon = request.json.get("icon")
+    sort = request.json.get("sort")
+    pid = request.json.get("pid")
+
+    menuInfo = Menu(name=name, title=title, path=path, redirect=redirect, hidden=hidden, type=menuType,
+                    component=component, icon=icon, sort=sort, pid=pid)
+    db.session.add(menuInfo)
+
+    db.session.commit()
+
+    return successResponseWrap("添加成功")
