@@ -82,9 +82,12 @@ def updateMenu():
     sort = request.json.get("sort")
     pid = request.json.get("pid")
 
-    Menu.query.filter_by(id=menuId) \
+    result = Menu.query.filter_by(id=menuId) \
         .update({"name": name, "title": title, "path": path, "redirect": redirect, "hidden": hidden, "type": menuType,
                  "component": component, "icon": icon, "sort": sort, "pid": pid})
+
+    if not result:
+        return failResponseWrap(5001, "没有数据被更新")
 
     db.session.commit()
 

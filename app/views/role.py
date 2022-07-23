@@ -11,7 +11,7 @@ from flask_jwt_extended import jwt_required
 
 from app import db
 from app.models import Role, Menu, RoleMenu
-from app.utils.ResponseWrap import successResponseWrap
+from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
 from app.modules.VerifyAuth import role_required, permission_required
 from app.utils.GenerateMenus import generateMenuTree, filterRoleTree
 
@@ -154,7 +154,10 @@ def deleteRole():
     RoleMenu.query.filter_by(role_id=roleId).delete()
 
     # 删除角色
-    Role.query.filter_by(id=roleId).delete()
+    result = Role.query.filter_by(id=roleId).delete()
+
+    if not result:
+        return failResponseWrap(5001, "未找到您要删除的角色")
 
     db.session.commit()
 

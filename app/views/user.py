@@ -232,7 +232,11 @@ def recover_password():
         return failResponseWrap(2008, "验证码错误")
     redis_1.delete(email)
 
-    User.query.filter_by(email=email).update({"password": password})
+    result = User.query.filter_by(email=email).update({"password": password})
+
+    if not result:
+        return failResponseWrap(5001, "没有数据被更新")
+
     db.session.commit()
 
     return successResponseWrap("密码修改成功")
@@ -313,7 +317,10 @@ def updateUser():
         .update({"username": username, "email": email, "gender": gender, "introduction": introduction})
 
     # 更新用户角色
-    UserRole.query.filter_by(user_id=userId).update({"role_id": roleId})
+    result = UserRole.query.filter_by(user_id=userId).update({"role_id": roleId})
+
+    if not result:
+        return failResponseWrap(5001, "没有数据被更新")
 
     db.session.commit()
 
@@ -328,7 +335,10 @@ def deleteUser(userId):
     UserRole.query.filter_by(user_id=userId).delete()
 
     # 删除用户信息
-    User.query.filter_by(userId=userId).delete()
+    result = User.query.filter_by(userId=userId).delete()
+
+    if not result:
+        return failResponseWrap(5001, "未找到您要删除的用户")
 
     db.session.commit()
 
@@ -339,7 +349,10 @@ def deleteUser(userId):
 @user.put("/user/reset-password/<int:userId>")
 @permission_required("user-update")
 def resetUserPassword(userId):
-    User.query.filter_by(userId=userId).update({"password": "123456"})
+    result = User.query.filter_by(userId=userId).update({"password": "123456"})
+
+    if not result:
+        return failResponseWrap(5001, "没有数据被更新")
 
     db.session.commit()
 
