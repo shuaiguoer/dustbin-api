@@ -242,26 +242,26 @@ def recover_password():
     return successResponseWrap("密码修改成功")
 
 
-# 查询所有用户信息
+# 获取所有用户信息
 @user.get("/user/list")
 @permission_required("user-list")
 def getUserList():
-    users = db.session.query(User) \
+    db_users_role = db.session.query(User, Role) \
         .join(UserRole, User.userId == UserRole.user_id) \
         .join(Role, UserRole.role_id == Role.id).all()
 
     userList = []
 
-    for u in users:
+    for ur in db_users_role:
         userList.append({
-            "userId": u.userId,
-            "username": u.username,
-            "email": u.email,
-            "avatar": u.avatar,
-            "gender": u.gender,
-            "introduction": u.introduction,
-            "registration_time": u.registration_time,
-            "roleId": u.user_roles[0].role_id,
+            "userId": ur[0].userId,
+            "username": ur[0].username,
+            "email": ur[0].email,
+            "avatar": ur[0].avatar,
+            "gender": ur[0].gender,
+            "introduction": ur[0].introduction,
+            "registration_time": ur[0].registration_time,
+            "roleNickName": ur[1].nickname
         })
 
     return successResponseWrap(data=userList)
@@ -367,24 +367,25 @@ def queryUser():
     email = request.args.get("email") or ''
     roleId = request.args.get("roleId") or ''
 
-    users = User.query \
-        .join(UserRole) \
+    db_users_role = db.session.query(User, Role) \
+        .join(UserRole, User.userId == UserRole.user_id) \
+        .join(Role, UserRole.role_id == Role.id) \
         .filter(User.username.like(f'%{username}%'),
                 User.email.like(f'%{email}%'),
                 UserRole.role_id.like(f'%{roleId}%')).all()
 
     userList = []
 
-    for u in users:
+    for ur in db_users_role:
         userList.append({
-            "avatar": u.avatar,
-            "email": u.email,
-            "gender": u.gender,
-            "introduction": u.introduction,
-            "registration_time": u.registration_time,
-            "userId": u.userId,
-            "username": u.username,
-            "roleId": u.user_roles[0].role_id,
+            "userId": ur[0].userId,
+            "username": ur[0].username,
+            "email": ur[0].email,
+            "avatar": ur[0].avatar,
+            "gender": ur[0].gender,
+            "introduction": ur[0].introduction,
+            "registration_time": ur[0].registration_time,
+            "roleNickName": ur[1].nickname
         })
 
     return successResponseWrap(data=userList)

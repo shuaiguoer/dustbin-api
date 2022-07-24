@@ -82,7 +82,8 @@ def getRoleInfo():
 
     permissionData = {
         "roleId": roleId,
-        "roleName": db_role.nickname,
+        "roleName": db_role.name,
+        "roleNickName": db_role.nickname,
         "description": db_role.description,
         "permissionIds": menuList,
     }
@@ -96,11 +97,12 @@ def getRoleInfo():
 def updateRole():
     roleId = request.json.get("roleId")
     roleName = request.json.get("roleName")
+    roleNickName = request.json.get("roleNickName")
     description = request.json.get("description")
     permissionIds = set(request.json.get("permissionIds"))
 
     # 更新角色信息
-    Role.query.filter_by(id=roleId).update({"nickname": roleName, "description": description})
+    Role.query.filter_by(id=roleId).update({"name": roleName, "nickname": roleNickName, "description": description})
 
     # 查询角色菜单
     db_role_menu = db.session.query(RoleMenu.menu_id).filter_by(role_id=roleId, deleted=0).all()
@@ -126,11 +128,12 @@ def updateRole():
 @permission_required("role-add")
 def addRole():
     roleName = request.json.get("roleName")
+    roleNickName = request.json.get("roleNickName")
     description = request.json.get("description")
     permissionIds = request.json.get("permissionIds")
 
     # 添加角色信息
-    roleInfo = Role(nickname=roleName, description=description)
+    roleInfo = Role(name=roleName, nickname=roleNickName, description=description)
     db.session.add(roleInfo)
 
     db.session.flush()
