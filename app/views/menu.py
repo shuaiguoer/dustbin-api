@@ -126,7 +126,7 @@ def addMenu():
     menuType = request.json.get("type")
     component = request.json.get("component") or ''
     icon = request.json.get("icon")
-    sort = request.json.get("sort")
+    sort = request.json.get("sort") or 0
     pid = request.json.get("pid")
 
     menuInfo = Menu(name=name, title=title, path=path, redirect=redirect, hidden=hidden, type=menuType,
