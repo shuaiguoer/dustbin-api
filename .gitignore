@@ -6,4 +6,9 @@
 /.idea/inspectionProfiles/Project_Default.xml
 /.idea/vcs.xml
 
+/migrations/alembic.ini
+/migrations/env.py
+/migrations/README
+/migrations/script.py.mako
+
 /app/conf/settings.py
