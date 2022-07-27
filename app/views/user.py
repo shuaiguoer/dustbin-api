@@ -37,21 +37,27 @@ def login():
     # 连接Redis
     redis2 = redisConnection(2)
 
+    # 密码错误
     if password != db_user.password:
         LOGIN_ERR_MAX = current_app.config.get('LOGIN_ERR_MAX')
         LOGIN_LOCK_TIME = current_app.config.get('LOGIN_LOCK_TIME')
+
+        #  向Redis中写入错误次数
+        redis2.incr(db_user.userId)
+
+        # 获取错误登录次数
         login_err_quantity = int(redis2.get(db_user.userId))
 
-        # 密码错误, 向Redis中写入错误次数
-        redis2.incr(db_user.userId)
-        redis2.expire(db_user.userId, LOGIN_LOCK_TIME)
-
-        # 如果登录次数超过登录次数最大限制
-        if login_err_quantity > LOGIN_ERR_MAX:
+        # 错误登录次数 对比 错误登录最大限制次数
+        if login_err_quantity <= LOGIN_ERR_MAX:
+            # 设置过期时间
+            redis2.expire(db_user.userId, LOGIN_LOCK_TIME)
+        else:
             if login_err_quantity == LOGIN_ERR_MAX + 1:
                 # 设置过期时间
                 redis2.expire(db_user.userId, LOGIN_LOCK_TIME)
 
+            # 获取距离登录限制解除的剩余时间
             expiration_time = redis2.ttl(db_user.userId)
             return failResponseWrap(2002, f"您登录失败的次数过多! 请等待 {expiration_time} 秒后重试!")
 
