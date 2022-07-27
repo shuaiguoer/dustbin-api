@@ -9,7 +9,7 @@
 import time
 import random
 
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
 
 from app import db
@@ -28,17 +28,42 @@ def login():
     username = request.json.get("username")
     password = request.json.get("password")
 
-    user = db.session.query(User.userId, User.password) \
+    db_user = db.session.query(User.userId, User.password) \
         .filter(db.or_(User.username == username, User.email == username)).first()
 
-    if user is None:
+    if db_user is None:
         return failResponseWrap(2004, "用户不存在")
 
-    if password != user.password:
-        return failResponseWrap(2002, "账号或者密码错误!")
+    # 连接Redis
+    redis2 = redisConnection(2)
 
-    access_token = create_access_token(identity=user.userId, fresh=True)
-    refresh_token = create_refresh_token(identity=user.userId)
+    if password != db_user.password:
+        LOGIN_ERR_MAX = current_app.config.get('LOGIN_ERR_MAX')
+        LOGIN_LOCK_TIME = current_app.config.get('LOGIN_LOCK_TIME')
+        login_err_quantity = int(redis2.get(db_user.userId))
+
+        # 密码错误, 向Redis中写入错误次数
+        redis2.incr(db_user.userId)
+        redis2.expire(db_user.userId, LOGIN_LOCK_TIME)
+
+        # 如果登录次数超过登录次数最大限制
+        if login_err_quantity > LOGIN_ERR_MAX:
+            if login_err_quantity == LOGIN_ERR_MAX + 1:
+                # 设置过期时间
+                redis2.expire(db_user.userId, LOGIN_LOCK_TIME)
+
+            expiration_time = redis2.ttl(db_user.userId)
+            return failResponseWrap(2002, f"您登录失败的次数过多! 请等待 {expiration_time} 秒后重试!")
+
+        return failResponseWrap(2002, f"账号或者密码错误! 剩余重试次数: {LOGIN_ERR_MAX - login_err_quantity}")
+
+    # 密码正确
+    # 如果存在错误密码次数记录, 则删除
+    if redis2.exists(db_user.userId):
+        redis2.delete(db_user.userId)
+
+    access_token = create_access_token(identity=db_user.userId, fresh=True)
+    refresh_token = create_refresh_token(identity=db_user.userId)
 
     return successResponseWrap("登陆成功", data={"access_token": access_token, "refresh_token": refresh_token})
 
