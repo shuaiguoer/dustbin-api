@@ -27,6 +27,8 @@ user = Blueprint('user', __name__)
 def login():
     username = request.json.get("username")
     password = request.json.get("password")
+    LOGIN_ERR_MAX = current_app.config.get('LOGIN_ERR_MAX')
+    LOGIN_LOCK_TIME = current_app.config.get('LOGIN_LOCK_TIME')
 
     db_user = db.session.query(User.userId, User.password) \
         .filter(db.or_(User.username == username, User.email == username)).first()
@@ -37,11 +39,12 @@ def login():
     # 连接Redis
     redis2 = redisConnection(2)
 
+    # 如果用户ID存在, 并且错误登录次数 大于 错误登录次数最大限制
+    if redis2.exists(db_user.userId) and int(redis2.get(db_user.userId)) >= LOGIN_ERR_MAX:
+        return failResponseWrap(2003, f"您登录失败的次数过多! 请等待 {redis2.ttl(db_user.userId)} 秒后重试!")
+
     # 密码错误
     if password != db_user.password:
-        LOGIN_ERR_MAX = current_app.config.get('LOGIN_ERR_MAX')
-        LOGIN_LOCK_TIME = current_app.config.get('LOGIN_LOCK_TIME')
-
         #  向Redis中写入错误次数
         redis2.incr(db_user.userId)
 
@@ -49,17 +52,14 @@ def login():
         login_err_quantity = int(redis2.get(db_user.userId))
 
         # 错误登录次数 对比 错误登录最大限制次数
-        if login_err_quantity <= LOGIN_ERR_MAX:
+        if login_err_quantity < LOGIN_ERR_MAX:
             # 设置过期时间
             redis2.expire(db_user.userId, LOGIN_LOCK_TIME)
         else:
-            if login_err_quantity == LOGIN_ERR_MAX + 1:
+            if login_err_quantity == LOGIN_ERR_MAX:
                 # 设置过期时间
                 redis2.expire(db_user.userId, LOGIN_LOCK_TIME)
-
-            # 获取距离登录限制解除的剩余时间
-            expiration_time = redis2.ttl(db_user.userId)
-            return failResponseWrap(2002, f"您登录失败的次数过多! 请等待 {expiration_time} 秒后重试!")
+                return failResponseWrap(2003, f"您登录失败的次数过多! 请等待 {redis2.ttl(db_user.userId)} 秒后重试!")
 
         return failResponseWrap(2002, f"账号或者密码错误! 剩余重试次数: {LOGIN_ERR_MAX - login_err_quantity}")
 
