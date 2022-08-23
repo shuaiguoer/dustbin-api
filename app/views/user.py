@@ -6,18 +6,18 @@
 # @Author  : Shuai
 # @Email   : ls12345666@qq.com
 """
-import time
 import random
+import time
 
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
 
 from app import db
 from app.models import UserRole, RoleMenu, User, Menu, Role
-from app.modules.VerifyAuth import role_required, permission_required
+from app.modules.VerifyAuth import permission_required
+from app.utils.ConnectionRedis import redisConnection
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
 from app.utils.SendMail import send_email
-from app.utils.ConnectionRedis import redisConnection
 
 user = Blueprint('user', __name__)
 
@@ -80,10 +80,7 @@ def login():
 def refresh():
     identity = get_jwt_identity()
 
-    # 获取用户角色
-    db_role = Role.query.join(UserRole).filter_by(user_id=identity).first()
-
-    access_token = create_access_token(identity=identity, fresh=False, additional_claims={"role": db_role.name})
+    access_token = create_access_token(identity=identity, fresh=False)
     return successResponseWrap("刷新成功", data={"access_token": access_token})
 
 
@@ -394,16 +391,22 @@ def resetUserPassword(userId):
 @user.get("/user/query")
 @permission_required("user-list")
 def queryUser():
-    username = request.args.get("username") or ''
-    email = request.args.get("email") or ''
-    roleId = request.args.get("roleId") or ''
+    username = request.args.get("username")
+    email = request.args.get("email")
+    roleId = request.args.get("roleId")
+
+    filter_params = []
+    if username:
+        filter_params.append(User.username.like(f'%{username}%'))
+    if email:
+        filter_params.append(User.email.like(f'%{email}%'))
+    if roleId:
+        filter_params.append(UserRole.role_id == roleId)
 
     db_users_role = db.session.query(User, Role) \
         .join(UserRole, User.userId == UserRole.user_id) \
         .join(Role, UserRole.role_id == Role.id) \
-        .filter(User.username.like(f'%{username}%'),
-                User.email.like(f'%{email}%'),
-                UserRole.role_id.like(f'%{roleId}%')).all()
+        .filter(*filter_params).all()
 
     userList = []
 
