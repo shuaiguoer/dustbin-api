@@ -432,3 +432,32 @@ def queryUser():
         })
 
     return successResponseWrap(data=userList)
+
+
+# 更改个人密码
+@user.put("/user/update/password")
+@jwt_required()
+def updateOwnPassword():
+    userId = get_jwt_identity()
+    oldPassword = request.json.get("oldPassword")
+    password = request.json.get("password")
+    rePassword = request.json.get("rePassword")
+
+    if password != rePassword:
+        return failResponseWrap(2009, "两次输入的密码不一致!")
+
+    db_user = User.query.filter_by(userId=userId).first()
+
+    # 验证数据库密码是否与用户输入的原密码相同
+    if md5(oldPassword) != db_user.password:
+        return failResponseWrap(2002, "原密码不正确")
+
+    # 将新密码写入数据库
+    result = User.query.filter_by(userId=userId).update({"password": md5(password)})
+
+    if not result:
+        return failResponseWrap(5001, "未知原因, 密码未被更新")
+
+    db.session.commit()
+
+    return successResponseWrap("密码修改成功")
