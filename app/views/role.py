@@ -112,10 +112,22 @@ def updateRole():
     for delete_id in deleteList:
         RoleMenu.query.filter(RoleMenu.role_id == roleId, RoleMenu.menu_id == delete_id).update({"deleted": 1})
 
-    # 更新角色菜单关系(新增)
-    insertList = permissionIds - db_permissionIds
-    for insert_id in insertList:
-        db.session.add(RoleMenu(role_id=roleId, menu_id=insert_id))
+    # 更新角色菜单关系(修改: 有则更新, 无则新增)
+    changeList = permissionIds - db_permissionIds
+    if changeList:
+        # 查询出当前已标记删除的菜单权限
+        db_role_menu_deleted = db.session.query(RoleMenu.menu_id).filter_by(role_id=roleId, deleted=1).all()
+        db_permissionIds_deleted = set([mid[0] for mid in db_role_menu_deleted])
+
+        # 计算出需要更新的角色菜单关系
+        updateList = permissionIds & db_permissionIds_deleted
+        for update_id in updateList:
+            RoleMenu.query.filter(RoleMenu.role_id == roleId, RoleMenu.menu_id == update_id).update({"deleted": 0})
+
+        # 计算出需要新增的角色菜单关系
+        insertList = changeList - updateList
+        for insert_id in insertList:
+            db.session.add(RoleMenu(role_id=roleId, menu_id=insert_id))
 
     db.session.commit()
 
