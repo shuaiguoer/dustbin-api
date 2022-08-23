@@ -19,7 +19,7 @@ role = Blueprint('role', __name__)
 
 # 获取角色列表
 @role.get("/role/list")
-@permission_required("role-list")
+@permission_required("role:list")
 def getRoleList():
     page = request.args.get("page", type=int)
     pageSize = request.args.get("pageSize", type=int)
@@ -48,7 +48,7 @@ def getRoleList():
 
 # 获取角色的所有权限列表
 @role.get("/role/permissions")
-@permission_required("role-read")
+@permission_required("role:read")
 def getRolePermissionList():
     db_menu = db.session.query(Menu.id, Menu.title, Menu.pid).all()
 
@@ -68,7 +68,7 @@ def getRolePermissionList():
 
 # 获取角色信息
 @role.get("/role/info")
-@permission_required("role-read")
+@permission_required("role:read")
 def getRoleInfo():
     roleId = request.args.get("roleId", type=int)
 
@@ -92,7 +92,7 @@ def getRoleInfo():
 
 # 更新角色信息
 @role.put("/role/update")
-@permission_required("role-update")
+@permission_required("role:update")
 def updateRole():
     roleId = request.json.get("roleId")
     roleName = request.json.get("roleName")
@@ -136,7 +136,7 @@ def updateRole():
 
 # 添加角色
 @role.post("/role/add")
-@permission_required("role-add")
+@permission_required("role:add")
 def addRole():
     roleName = request.json.get("roleName")
     roleNickName = request.json.get("roleNickName")
@@ -160,7 +160,7 @@ def addRole():
 
 # 删除角色
 @role.delete("/role/delete")
-@permission_required("role-delete")
+@permission_required("role:delete")
 def deleteRole():
     roleId = request.json.get("roleId")
 

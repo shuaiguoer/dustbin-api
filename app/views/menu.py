@@ -43,7 +43,7 @@ def menus():
 
 # 获取菜单信息
 @menu.get("/menu/info")
-@permission_required("menu-read")
+@permission_required("menu:read")
 def getMenuInfo():
     permissionId = request.args.get("permissionId")
 
@@ -68,7 +68,7 @@ def getMenuInfo():
 
 # 更新菜单信息
 @menu.put("/menu/update")
-@permission_required("menu-update")
+@permission_required("menu:update")
 def updateMenu():
     menuId = request.json.get("id")
     name = request.json.get("name")
@@ -96,7 +96,7 @@ def updateMenu():
 
 # 删除菜单
 @menu.delete("/menu/delete")
-@permission_required("menu-delete")
+@permission_required("menu:delete")
 def deleteMenu():
     menuId = request.json.get("menuId")
 
@@ -116,7 +116,7 @@ def deleteMenu():
 
 # 添加菜单
 @menu.post("/menu/add")
-@permission_required("menu-add")
+@permission_required("menu:add")
 def addMenu():
     name = request.json.get("name")
     title = request.json.get("title")

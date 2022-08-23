@@ -130,7 +130,7 @@ def getUserInfo():
 
 # 获取指定用户信息
 @user.get("/user/info/<int:userId>")
-@permission_required("user-read")
+@permission_required("user:read")
 def getSomeUserInfo(userId):
     user = User.query.filter(User.userId == userId).first()
 
@@ -272,7 +272,7 @@ def recover_password():
 
 # 获取所有用户信息
 @user.get("/user/list")
-@permission_required("user-list")
+@permission_required("user:list")
 def getUserList():
     db_users_role = db.session.query(User, Role) \
         .join(UserRole, User.userId == UserRole.user_id) \
@@ -297,7 +297,7 @@ def getUserList():
 
 # 添加用户
 @user.post("/user/add")
-@permission_required("user-add")
+@permission_required("user:add")
 def addUser():
     username = request.json.get("username")
     email = request.json.get("email")
@@ -331,7 +331,7 @@ def addUser():
 
 # 更新用户信息
 @user.put("/user/update")
-@permission_required("user-update")
+@permission_required("user:update")
 def updateUser():
     userId = request.json.get("userId")
     username = request.json.get("username")
@@ -357,7 +357,7 @@ def updateUser():
 
 # 删除用户
 @user.delete("/user/delete/<int:userId>")
-@permission_required("user-delete")
+@permission_required("user:delete")
 def deleteUser(userId):
     # 删除用户角色关系
     UserRole.query.filter_by(user_id=userId).delete()
@@ -375,7 +375,7 @@ def deleteUser(userId):
 
 # 重置用户密码
 @user.put("/user/reset-password/<int:userId>")
-@permission_required("user-update")
+@permission_required("user:update")
 def resetUserPassword(userId):
     result = User.query.filter_by(userId=userId).update({"password": "123456"})
 
@@ -389,7 +389,7 @@ def resetUserPassword(userId):
 
 # 查询符合条件的用户
 @user.get("/user/query")
-@permission_required("user-list")
+@permission_required("user:list")
 def queryUser():
     username = request.args.get("username")
     email = request.args.get("email")
