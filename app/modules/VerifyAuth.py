@@ -11,9 +11,9 @@ from functools import wraps
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 
 from app import db
-from app.models import UserRole, RoleMenu, User, Menu, Role
-from app.utils.ResponseWrap import failResponseWrap
 from app.conf.StatusCode import PERMISSION_NO_ACCESS
+from app.models import UserRole, RoleMenu, Menu, Role
+from app.utils.ResponseWrap import failResponseWrap
 
 
 # 角色鉴定

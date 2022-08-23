@@ -49,7 +49,8 @@ class RoleMenu(db.Model, EntityBase):
     id = db.Column(db.Integer, primary_key=True, info='角色菜单表主键')
     role_id = db.Column(db.ForeignKey('role.id'), nullable=False, index=True, info='角色ID')
     menu_id = db.Column(db.ForeignKey('menu.id'), nullable=False, index=True, info='菜单ID')
-    deleted = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='是否删除: 删除(0) 未删除(1)')
+    deleted = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(),
+                        info='是否删除: 删除(1) 未删除(0)')
 
     menu = db.relationship('Menu', primaryjoin='RoleMenu.menu_id == Menu.id', backref='role_menus')
     role = db.relationship('Role', primaryjoin='RoleMenu.role_id == Role.id', backref='role_menus')

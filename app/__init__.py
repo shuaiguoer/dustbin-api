@@ -1,9 +1,10 @@
 from flask import Flask
 from flask_cors import CORS
+from flask_mail import Mail
 from flask_sqlalchemy import SQLAlchemy
+
 from app.conf.settings import Config
 from app.utils.JWTLoader import jwt
-from flask_mail import Mail
 
 # 实例化SQLAlchemy
 db = SQLAlchemy()  # 注意：实例化SQLAlchemy的代码必须要在引入蓝图之前

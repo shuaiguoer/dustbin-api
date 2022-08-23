@@ -6,12 +6,10 @@
 # @Author  : Shuai
 # @Email   : ls12345666@qq.com
 """
-from flask import Blueprint, request
-
-from app import db
-from app.models import Role
-
+from flask import Blueprint
 from flask_jwt_extended import jwt_required
+
+from app.models import Role
 from app.utils.ResponseWrap import successResponseWrap
 
 dictionary = Blueprint('dictionary', __name__)

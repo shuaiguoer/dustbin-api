@@ -11,9 +11,9 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app import db
 from app.models import UserRole, RoleMenu, User, Menu
-from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
+from app.modules.VerifyAuth import permission_required
 from app.utils.GenerateMenus import generateMenuTree, filterMenuTree
-from app.modules.VerifyAuth import role_required, permission_required
+from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
 
 menu = Blueprint('menu', __name__)
 
