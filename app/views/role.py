@@ -7,13 +7,12 @@
 # @Email   : ls12345666@qq.com
 """
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required
 
 from app import db
-from app.models import Role, Menu, RoleMenu
-from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
-from app.modules.VerifyAuth import role_required, permission_required
+from app.models import Role, Menu, RoleMenu, UserRole
+from app.modules.VerifyAuth import permission_required
 from app.utils.GenerateMenus import generateMenuTree, filterRoleTree
+from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
 
 role = Blueprint('role', __name__)
 
@@ -153,8 +152,11 @@ def addRole():
 def deleteRole():
     roleId = request.json.get("roleId")
 
-    # 删除角色菜单关系
+    # 删除角色与菜单的关系
     RoleMenu.query.filter_by(role_id=roleId).delete()
+
+    # 将拥有该角色的用户全部设置为普通用户
+    UserRole.query.filter_by(role_id=roleId).update({"role_id": 2})
 
     # 删除角色
     result = Role.query.filter_by(id=roleId).delete()
