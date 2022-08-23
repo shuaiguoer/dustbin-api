@@ -16,6 +16,7 @@ from app import db
 from app.models import UserRole, RoleMenu, User, Menu, Role
 from app.modules.VerifyAuth import permission_required
 from app.utils.ConnectionRedis import redisConnection
+from app.utils.Encrypt import md5
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
 from app.utils.SendMail import send_email
 
@@ -42,6 +43,9 @@ def login():
     # 如果用户ID存在, 并且错误登录次数 大于 错误登录次数最大限制
     if redis2.exists(db_user.userId) and int(redis2.get(db_user.userId)) >= LOGIN_ERR_MAX:
         return failResponseWrap(2003, f"您登录失败的次数过多! 请等待 {redis2.ttl(db_user.userId)} 秒后重试!")
+
+    # 密码加密
+    password = md5(password)
 
     # 密码错误
     if password != db_user.password:
@@ -195,6 +199,9 @@ def register():
 
     registration_time = int(round(time.time() * 1000))
 
+    # 密码加密
+    password = md5(password)
+
     # 写入数据库
     userInfo = User(username=username, password=password, email=email, registration_time=registration_time)
     db.session.add(userInfo)
@@ -310,10 +317,11 @@ def addUser():
     if user:
         return failResponseWrap(2005, "用户已存在")
 
+    password = current_app.config.get("DEFAULT_USER_PASSWORD")
     registration_time = int(round(time.time() * 1000))
 
     # 写入数据库
-    userInfo = User(username=username, email=email, gender=gender, introduction=introduction,
+    userInfo = User(username=username, password=password, email=email, gender=gender, introduction=introduction,
                     registration_time=registration_time)
     db.session.add(userInfo)
 
@@ -377,7 +385,8 @@ def deleteUser(userId):
 @user.put("/user/reset-password/<int:userId>")
 @permission_required("user:update")
 def resetUserPassword(userId):
-    result = User.query.filter_by(userId=userId).update({"password": "123456"})
+    password = current_app.config.get("DEFAULT_USER_PASSWORD")
+    result = User.query.filter_by(userId=userId).update({"password": password})
 
     if not result:
         return failResponseWrap(5001, "没有数据被更新")
