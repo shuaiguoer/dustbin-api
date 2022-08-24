@@ -15,6 +15,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 from app import db
 from app.models import UserRole, RoleMenu, User, Menu, Role
 from app.modules.VerifyAuth import permission_required
+from app.modules.VerifyEmail import verifyEmail
 from app.utils.ConnectionRedis import redisConnection
 from app.utils.Encrypt import md5
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
@@ -107,6 +108,9 @@ def getUserInfo():
         .join(User, UserRole.user_id == User.userId) \
         .filter(User.userId == userId, RoleMenu.deleted == 0).all()
 
+    # 查询角色名称
+    db_role = Role.query.join(UserRole).filter(UserRole.user_id == user.userId).first()
+
     menus = []
     for menu in db_menus:
         menus.append({
@@ -126,6 +130,7 @@ def getUserInfo():
         "introduction": user.introduction,
         "registration_time": user.registration_time,
         "roleId": user_role.role_id,
+        "roleName": db_role.nickname,
         "permissions": menus
     }
 
@@ -172,30 +177,21 @@ def register():
         return failResponseWrap(2009, "两次输入的密码不一致!")
 
     # 判断用户名是否存在
-    user = User.query.filter_by(username=username).first()
-    if user:
+    db_user = User.query.filter_by(username=username).first()
+    if db_user:
         return failResponseWrap(2005, "用户已存在")
 
     # 判断邮箱是否重复绑定
-    emails = db.session.query(User.email).all()
-    emailList = [e[0] for e in emails]
-
-    if email in emailList:
+    db_user = User.query.filter_by(email=email).first()
+    if db_user:
         return failResponseWrap(2006, "邮箱重复绑定")
 
-    # 连接redis
-    redis_1 = redisConnection(1)
-    if not redis_1.exists(email):
-        return failResponseWrap(2007, "验证码已过期")
+    # 效验验证码
+    result = verifyEmail(email, code)
 
-    # 获取验证码
-    redis_code = redis_1.get(email)
-
-    if code != redis_code:
-        return failResponseWrap(2008, "验证码错误")
-
-    # 验证成功则删除缓存的验证码
-    redis_1.delete(email)
+    # 如果存在code字段, 说明效验失败
+    if type(result) == dict:
+        return result
 
     registration_time = int(round(time.time() * 1000))
 
@@ -313,9 +309,14 @@ def addUser():
     roleId = request.json.get("roleId")
 
     # 判断用户名是否存在
-    user = User.query.filter_by(username=username).first()
-    if user:
+    db_user = User.query.filter_by(username=username).first()
+    if db_user:
         return failResponseWrap(2005, "用户已存在")
+
+    # 判断邮箱是否重复绑定
+    db_user = User.query.filter_by(email=email).first()
+    if db_user:
+        return failResponseWrap(2006, "邮箱重复绑定")
 
     password = current_app.config.get("DEFAULT_USER_PASSWORD")
     registration_time = int(round(time.time() * 1000))
@@ -435,7 +436,7 @@ def queryUser():
 
 
 # 更改个人密码
-@user.put("/user/update/password")
+@user.put("/user/update/own-password")
 @jwt_required()
 def updateOwnPassword():
     userId = get_jwt_identity()
