@@ -462,3 +462,23 @@ def updateOwnPassword():
     db.session.commit()
 
     return successResponseWrap("密码修改成功")
+
+
+# 更新个人信息
+@user.put("/user/update/own-info")
+@jwt_required()
+def updateOwnInfo():
+    userId = get_jwt_identity()
+    avatar = request.json.get("avatar")
+    username = request.json.get("username")
+    email = request.json.get("email")
+    gender = request.json.get("gender")
+    introduction = request.json.get("introduction")
+
+    User.query.filter_by(userId=userId).update(
+        {"username": username, "gender": gender, "email": email, "introduction": introduction, "avatar": avatar}
+    )
+
+    db.session.commit()
+
+    return successResponseWrap("信息更新成功")
