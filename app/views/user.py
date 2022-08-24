@@ -498,3 +498,32 @@ def verificationCode():
         return result
 
     return successResponseWrap("验证码效验成功")
+
+
+# 换绑邮箱
+@user.put("/user/update/own-email")
+@jwt_required()
+def updateOwnEmail():
+    userId = get_jwt_identity()
+    email = request.json.get("email")
+    code = request.json.get("code")
+
+    # 判断邮箱是否重复绑定
+    db_user = User.query.filter_by(email=email).first()
+    if db_user:
+        return failResponseWrap(2006, "邮箱重复绑定")
+
+    # 效验验证码
+    verifyResult = verifyEmail(email, code)
+
+    if type(verifyResult) == dict:
+        return verifyResult
+
+    result = User.query.filter_by(userId=userId).update({"email": email})
+
+    if not result:
+        return failResponseWrap(5001, "没有数据被更新")
+
+    db.session.commit()
+
+    return successResponseWrap("邮箱已绑定成功")
