@@ -482,3 +482,19 @@ def updateOwnInfo():
     db.session.commit()
 
     return successResponseWrap("信息更新成功")
+
+
+# 效验验证码
+@user.post("/user/verification-code")
+def verificationCode():
+    email = request.json.get("email")
+    code = request.json.get("code")
+
+    # 效验验证码
+    result = verifyEmail(email, code)
+
+    # 如果存在code字段, 说明效验失败
+    if type(result) == dict:
+        return result
+
+    return successResponseWrap("验证码效验成功")
