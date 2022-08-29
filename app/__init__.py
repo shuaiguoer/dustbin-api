@@ -20,7 +20,7 @@ from app.views.dict import dictionary
 
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder='../static')
 
     # 跨域
     CORS(app, supports_credentials=True)

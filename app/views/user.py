@@ -6,11 +6,13 @@
 # @Author  : Shuai
 # @Email   : ls12345666@qq.com
 """
+import os
 import random
 import time
 
 from flask import Blueprint, request, current_app
 from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
+from werkzeug.utils import secure_filename
 
 from app import db
 from app.models import UserRole, RoleMenu, User, Menu, Role
@@ -474,6 +476,19 @@ def updateOwnInfo():
     email = request.json.get("email")
     gender = request.json.get("gender")
     introduction = request.json.get("introduction")
+    UPLOAD_FOLDER = current_app.config.get("UPLOAD_FOLDER")
+
+    # 查询用户头像
+    db_user = User.query.filter_by(userId=userId).first()
+    db_user_avatar = db_user.avatar
+    avatar_path = request.host_url + UPLOAD_FOLDER
+
+    # 判断文件目录是否存在用户头像
+    if db_user_avatar and db_user_avatar.find(avatar_path) != -1:
+        # 删除原头像
+        old_avatar = db_user_avatar.split(request.host_url)[1]
+        if os.path.exists(old_avatar):
+            os.remove(old_avatar)
 
     User.query.filter_by(userId=userId).update(
         {"username": username, "gender": gender, "email": email, "introduction": introduction, "avatar": avatar}
@@ -527,3 +542,56 @@ def updateOwnEmail():
     db.session.commit()
 
     return successResponseWrap("邮箱已绑定成功")
+
+
+# 更新头像
+@user.post("/user/update/avatar")
+@jwt_required()
+def updateAvatar():
+    userId = get_jwt_identity()
+
+    UPLOAD_FOLDER = current_app.config.get("UPLOAD_FOLDER")
+    ALLOWED_EXTENSIONS = current_app.config.get("ALLOWED_EXTENSIONS")
+
+    if 'avatar' not in request.files:
+        return failResponseWrap(1002, "未接收到文件")
+
+    avatar = request.files.get("avatar")
+    filename = avatar.filename
+
+    if filename == '':
+        return failResponseWrap(1002, "接收到空文件")
+
+    if filename.rsplit('.', 1)[1].lower() not in ALLOWED_EXTENSIONS:
+        return failResponseWrap(1003, "不支持的文件类型")
+
+    if avatar and '.' in filename:
+        ts = int(round(time.time() * 1000))
+        filename = secure_filename(filename)
+        avatar_filename = str(userId) + str(ts) + filename
+
+        db_user = User.query.filter_by(userId=userId).first()
+        db_user_avatar = db_user.avatar
+        avatar_path = request.host_url + UPLOAD_FOLDER
+
+        # 判断文件目录是否存在用户头像
+        if db_user_avatar and db_user_avatar.find(avatar_path) != -1:
+            # 删除原头像
+            old_avatar = db_user_avatar.split(request.host_url)[1]
+            if os.path.exists(old_avatar):
+                os.remove(old_avatar)
+
+        if not os.path.exists(UPLOAD_FOLDER):
+            os.makedirs(UPLOAD_FOLDER)
+
+        avatar.save(os.path.join(UPLOAD_FOLDER, avatar_filename))
+
+        avatar_url = request.host_url + UPLOAD_FOLDER + avatar_filename
+
+        User.query.filter_by(userId=userId).update({"avatar": avatar_url})
+
+        db.session.commit()
+
+        return successResponseWrap("上传成功")
+
+    return failResponseWrap(-1, "上传失败")
