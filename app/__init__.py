@@ -1,9 +1,10 @@
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from flask_mail import Mail
 from flask_sqlalchemy import SQLAlchemy
 
 from app.conf.settings import Config
+from app.modules.LogHandler import getLogHandler
 from app.utils.JWTLoader import jwt
 
 # 实例化SQLAlchemy
@@ -21,6 +22,13 @@ from app.views.dict import dictionary
 
 def create_app():
     app = Flask(__name__, static_folder='../static')
+
+    app.logger.addHandler(getLogHandler())
+
+    @app.before_request
+    def log_each_request():
+        app.logger.info(
+            '{} - {} - {}'.format(request.method, request.path, request.remote_addr))
 
     # 跨域
     CORS(app, supports_credentials=True)
