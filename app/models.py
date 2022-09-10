@@ -18,6 +18,31 @@ class EntityBase(object):
         return fields
 
 
+class Dict(db.Model, EntityBase):
+    __tablename__ = 'dict'
+
+    id = db.Column(db.Integer, primary_key=True, info='字典表ID')
+    name = db.Column(db.String(50), nullable=False, info='字典名称')
+    type = db.Column(db.String(255), nullable=False, info='字典类型')
+    description = db.Column(db.String(255), info='字典说明')
+    deleted = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='字典是否禁用')
+
+
+class DictItem(db.Model, EntityBase):
+    __tablename__ = 'dictItem'
+
+    id = db.Column(db.Integer, primary_key=True, info='字典项ID')
+    label = db.Column(db.String(20), nullable=False, info='字典项名称')
+    value = db.Column(db.String(50), nullable=False, info='字典项值')
+    sort = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='字典项顺序(越小越靠前)')
+    isDefault = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(),
+                          info='是否默认(1:默认, 0:非默认)')
+    description = db.Column(db.String(255), info='字典项说明')
+    deleted = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='字典项是否禁用')
+    updated_at = db.Column(db.String(20), nullable=False, info='更新时间')
+    dict_id = db.Column(db.Integer, nullable=False, info='字典ID')
+
+
 class Menu(db.Model, EntityBase):
     __tablename__ = 'menu'
 

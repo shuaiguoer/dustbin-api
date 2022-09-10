@@ -17,7 +17,7 @@ mail = Mail()
 from app.views.user import user
 from app.views.menu import menu
 from app.views.role import role
-from app.views.dict import dictionary
+from app.views.dictionary import dictionary
 
 
 def create_app():
