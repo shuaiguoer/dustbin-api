@@ -10,7 +10,7 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app import db
-from app.models import UserRole, RoleMenu, User, Menu
+from app.models import UserRole, RoleMenu, User, Menu, Dict, DictItem
 from app.modules.VerifyAuth import permission_required
 from app.utils.GenerateMenus import generateMenuTree, filterMenuTree
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
@@ -38,7 +38,20 @@ def menus():
     # 过滤菜单
     menuList = filterMenuTree(menuTree)
 
-    return successResponseWrap(data=menuList)
+    dictData = {}
+    db_dict = Dict.query.all()
+    dictTypeList = [d.type for d in db_dict]
+
+    for dt in dictTypeList:
+        db_dictItem = DictItem.query.join(Dict, DictItem.dict_id == Dict.id).filter(Dict.type == dt).all()
+        dictData[dt] = [d.to_json() for d in db_dictItem]
+
+    data = {
+        "menuList": menuList,
+        "dictData": dictData
+    }
+
+    return successResponseWrap(data=data)
 
 
 # 获取菜单信息
