@@ -18,6 +18,7 @@ from app.views.user import user
 from app.views.menu import menu
 from app.views.role import role
 from app.views.dictionary import dictionary
+from app.views.qrcode import qrcode
 
 
 def create_app():
@@ -50,5 +51,6 @@ def create_app():
     app.register_blueprint(menu)
     app.register_blueprint(role)
     app.register_blueprint(dictionary)
+    app.register_blueprint(qrcode)
 
     return app
