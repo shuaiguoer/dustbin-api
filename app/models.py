@@ -47,11 +47,11 @@ class Menu(db.Model, EntityBase):
     __tablename__ = 'menu'
 
     id = db.Column(db.Integer, primary_key=True, info='菜单主键')
-    name = db.Column(db.String(20), nullable=False, info='菜单名称')
+    name = db.Column(db.String(50), nullable=False, info='菜单名称')
     path = db.Column(db.String(50), nullable=False, info='菜单路径')
     component = db.Column(db.String(50), nullable=False, info='菜单组件名称')
     redirect = db.Column(db.String(255), info='菜单跳转链接')
-    title = db.Column(db.String(20), info='菜单标题')
+    title = db.Column(db.String(50), info='菜单标题')
     icon = db.Column(db.String(50), info='菜单图标名称')
     hidden = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='菜单: 显示(0)/隐藏(1)')
     sort = db.Column(db.Integer, nullable=False, info='排序(越小越靠前)')
@@ -74,8 +74,8 @@ class Role(db.Model, EntityBase):
     __tablename__ = 'role'
 
     id = db.Column(db.Integer, primary_key=True, info='角色主键')
-    name = db.Column(db.String(20), nullable=False, info='角色名称')
-    nickname = db.Column(db.String(20), nullable=False, info='中文名称')
+    name = db.Column(db.String(50), nullable=False, info='角色名称')
+    nickname = db.Column(db.String(50), nullable=False, info='中文名称')
     description = db.Column(db.String(255), info='角色描述')
 
 

@@ -177,7 +177,7 @@ def getDictItemList():
 
     # 遍历添加到字典项列表中
     for di in db_dictItem:
-        dictData["list"].append(di.to_json())
+        dictData["list"].append(di.to_dict())
 
     return successResponseWrap(data=dictData)
 
@@ -198,12 +198,12 @@ def getDictItem():
             db_dictItem = DictItem.query.join(Dict, DictItem.dict_id == Dict.id) \
                 .filter(Dict.type == dt, *filter_params) \
                 .all()
-            dictData[dt] = [d.to_json() for d in db_dictItem]
+            dictData[dt] = [d.to_dict() for d in db_dictItem]
     elif dictType:
         db_dictItem = DictItem.query.join(Dict, DictItem.dict_id == Dict.id) \
             .filter(Dict.type == dictType, *filter_params) \
             .all()
-        dictData[dictType] = [d.to_json() for d in db_dictItem]
+        dictData[dictType] = [d.to_dict() for d in db_dictItem]
     else:
         db_dict = Dict.query.all()
         dictTypeList = [d.type for d in db_dict]
@@ -212,7 +212,7 @@ def getDictItem():
             db_dictItem = DictItem.query.join(Dict, DictItem.dict_id == Dict.id) \
                 .filter(Dict.type == dt, *filter_params) \
                 .all()
-            dictData[dt] = [d.to_json() for d in db_dictItem]
+            dictData[dt] = [d.to_dict() for d in db_dictItem]
 
     return successResponseWrap(data=dictData)
 

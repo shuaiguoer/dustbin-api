@@ -30,7 +30,7 @@ def menus():
         .join(User, UserRole.user_id == User.userId) \
         .filter(User.userId == userId, Menu.type != 2, Menu.hidden == 0, RoleMenu.deleted == 0).all()
 
-    menus = [menu.to_json() for menu in db_menus]
+    menus = [menu.to_dict() for menu in db_menus]
 
     # 生成树形菜单
     menuTree = generateMenuTree(menus, 0)
@@ -44,7 +44,7 @@ def menus():
 
     for dt in dictTypeList:
         db_dictItem = DictItem.query.join(Dict, DictItem.dict_id == Dict.id).filter(Dict.type == dt).all()
-        dictData[dt] = [d.to_json() for d in db_dictItem]
+        dictData[dt] = [d.to_dict() for d in db_dictItem]
 
     data = {
         "menuList": menuList,
