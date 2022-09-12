@@ -135,6 +135,7 @@ def deleteDict():
 @jwt_required()
 def getDictItemList():
     dictTypeList = request.args.getlist("dictTypeList[]")
+    dictType = request.args.getlist("dictType")
     dictItemName = request.args.get("dictItemName")
     page = request.args.get("page", type=int)
     pageSize = request.args.get("pageSize", type=int)
@@ -147,7 +148,11 @@ def getDictItemList():
         "itemCount": None,
     }
 
-    db_dict = Dict.query.filter(Dict.type.in_(dictTypeList)).all()
+    db_dict = []
+    if dictTypeList:
+        db_dict = Dict.query.filter(Dict.type.in_(dictTypeList)).all()
+    elif dictType:
+        db_dict = Dict.query.filter(Dict.type == dictType).all()
 
     if not db_dict:
         return successResponseWrap(dictData)
@@ -182,28 +187,34 @@ def getDictItemList():
 @jwt_required()
 def getDictItem():
     dictTypeList = request.args.getlist("dictTypeList[]")
-    dictItemName = request.args.get("dictItemName")
+    dictType = request.args.get("dictType")
 
-    db_dict = Dict.query.filter(Dict.type.in_(dictTypeList)).all()
+    filter_params = [Dict.deleted == 0, DictItem.deleted == 0]
 
-    if not db_dict:
-        return successResponseWrap(data=[])
+    dictData = {}
 
-    dictIds = [d.id for d in db_dict]
+    if dictTypeList:
+        for dt in dictTypeList:
+            db_dictItem = DictItem.query.join(Dict, DictItem.dict_id == Dict.id) \
+                .filter(Dict.type == dt, *filter_params) \
+                .all()
+            dictData[dt] = [d.to_json() for d in db_dictItem]
+    elif dictType:
+        db_dictItem = DictItem.query.join(Dict, DictItem.dict_id == Dict.id) \
+            .filter(Dict.type == dictType, *filter_params) \
+            .all()
+        dictData[dictType] = [d.to_json() for d in db_dictItem]
+    else:
+        db_dict = Dict.query.all()
+        dictTypeList = [d.type for d in db_dict]
 
-    filter_params = []
-    if dictItemName:
-        filter_params.append(DictItem.label.like(f'%{dictItemName}%'))
+        for dt in dictTypeList:
+            db_dictItem = DictItem.query.join(Dict, DictItem.dict_id == Dict.id) \
+                .filter(Dict.type == dt, *filter_params) \
+                .all()
+            dictData[dt] = [d.to_json() for d in db_dictItem]
 
-    filter_params.extend([Dict.deleted == 0, DictItem.deleted == 0])
-    db_dictItem = DictItem.query.filter(DictItem.dict_id.in_(dictIds), *filter_params).all()
-
-    # 遍历添加到字典项列表中
-    dictList = []
-    for di in db_dictItem:
-        dictList.append(di.to_json())
-
-    return successResponseWrap(data=dictList)
+    return successResponseWrap(data=dictData)
 
 
 # 更新字典项
