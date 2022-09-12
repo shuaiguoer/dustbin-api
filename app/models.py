@@ -10,7 +10,7 @@ from app import db
 
 
 class EntityBase(object):
-    def to_json(self):
+    def to_dict(self):
         fields = self.__dict__
         if "_sa_instance_state" in fields:
             del fields["_sa_instance_state"]
@@ -57,6 +57,17 @@ class Menu(db.Model, EntityBase):
     sort = db.Column(db.Integer, nullable=False, info='排序(越小越靠前)')
     type = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='类型: 菜单(1) 权限(2)')
     pid = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='父菜单ID')
+
+
+class Qrcode(db.Model, EntityBase):
+    __tablename__ = 'qrcode'
+
+    id = db.Column(db.Integer, primary_key=True, info='ID')
+    source = db.Column(db.String(255), nullable=False, info='源代码')
+    target = db.Column(db.String(255), nullable=False, info='目标地址')
+    description = db.Column(db.String(255), info='描述信息')
+    updated_at = db.Column(db.String(20), nullable=False, info='更新时间')
+    deleted = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='是否删除')
 
 
 class Role(db.Model, EntityBase):
