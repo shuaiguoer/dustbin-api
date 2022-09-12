@@ -275,29 +275,65 @@ def recover_password():
     return successResponseWrap("密码修改成功")
 
 
-# 获取所有用户信息
+# 获取用户列表
 @user.get("/user/list")
 @permission_required("user:list")
 def getUserList():
-    db_users_role = db.session.query(User, Role) \
+    username = request.args.get("username")
+    email = request.args.get("email")
+    roleId = request.args.get("roleId")
+    page = request.args.get("page", type=int)
+    pageSize = request.args.get("pageSize", type=int)
+
+    filter_params = []
+    if username:
+        filter_params.append(User.username.like(f'%{username}%'))
+    if email:
+        filter_params.append(User.email.like(f'%{email}%'))
+    if roleId:
+        filter_params.append(UserRole.role_id == roleId)
+
+    db_user = db.session.query(User) \
         .join(UserRole, User.userId == UserRole.user_id) \
-        .join(Role, UserRole.role_id == Role.id).all()
+        .join(Role, UserRole.role_id == Role.id) \
+        .filter(*filter_params) \
+        .limit(pageSize).offset(pageSize * (page - 1)) \
+        .all()
 
     userList = []
 
-    for ur in db_users_role:
+    for u in db_user:
+        db_role = Role.query.join(UserRole, Role.id == UserRole.role_id).filter(UserRole.user_id == u.userId).first()
+
         userList.append({
-            "userId": ur[0].userId,
-            "username": ur[0].username,
-            "email": ur[0].email,
-            "avatar": ur[0].avatar,
-            "gender": ur[0].gender,
-            "introduction": ur[0].introduction,
-            "registration_time": ur[0].registration_time,
-            "roleNickName": ur[1].nickname
+            "userId": u.userId,
+            "username": u.username,
+            "email": u.email,
+            "avatar": u.avatar,
+            "gender": u.gender,
+            "introduction": u.introduction,
+            "registration_time": u.registration_time,
+            "roleNickName": db_role.nickname
         })
 
-    return successResponseWrap(data=userList)
+    # 查询当前部门的用户总数量
+    itemCount = db.session.query(db.func.count(User.userId)) \
+        .join(UserRole, User.userId == UserRole.user_id) \
+        .join(Role, UserRole.role_id == Role.id) \
+        .filter(*filter_params).scalar()
+
+    # 获取总页数
+    pageCount = int((itemCount + pageSize - 1) / pageSize)
+
+    userData = {
+        "list": userList,
+        "page": page,
+        "pageSize": pageSize,
+        "pageCount": pageCount,
+        "itemCount": itemCount,
+    }
+
+    return successResponseWrap(data=userData)
 
 
 # 添加用户
@@ -397,44 +433,6 @@ def resetUserPassword(userId):
     db.session.commit()
 
     return successResponseWrap("密码重置成功")
-
-
-# 查询符合条件的用户
-@user.get("/user/query")
-@permission_required("user:list")
-def queryUser():
-    username = request.args.get("username")
-    email = request.args.get("email")
-    roleId = request.args.get("roleId")
-
-    filter_params = []
-    if username:
-        filter_params.append(User.username.like(f'%{username}%'))
-    if email:
-        filter_params.append(User.email.like(f'%{email}%'))
-    if roleId:
-        filter_params.append(UserRole.role_id == roleId)
-
-    db_users_role = db.session.query(User, Role) \
-        .join(UserRole, User.userId == UserRole.user_id) \
-        .join(Role, UserRole.role_id == Role.id) \
-        .filter(*filter_params).all()
-
-    userList = []
-
-    for ur in db_users_role:
-        userList.append({
-            "userId": ur[0].userId,
-            "username": ur[0].username,
-            "email": ur[0].email,
-            "avatar": ur[0].avatar,
-            "gender": ur[0].gender,
-            "introduction": ur[0].introduction,
-            "registration_time": ur[0].registration_time,
-            "roleNickName": ur[1].nickname
-        })
-
-    return successResponseWrap(data=userList)
 
 
 # 更改个人密码
