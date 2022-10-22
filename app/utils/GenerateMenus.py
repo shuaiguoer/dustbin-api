@@ -15,7 +15,7 @@ def generateMenuTree(baseMenuList, pid, subField="id"):
     menuTree = []
     for menu in baseMenuList:
         if menu.get("pid") == pid:
-            children = generateMenuTree(baseMenuList, menu.get(subField), "key")
+            children = generateMenuTree(baseMenuList, menu.get(subField), subField)
             if children:
                 menu['children'] = children
             menuTree.append(menu)
@@ -45,7 +45,7 @@ def filterMenuTree(MenuTree):
         if menu["icon"]:
             menu["meta"]["icon"] = menu["icon"]
         if menu["hidden"]:
-            menu["meta"]["hidden"] = "true"
+            menu["meta"]["hidden"] = True
         if menu["sort"]:
             menu["meta"]["sort"] = menu["sort"]
 
