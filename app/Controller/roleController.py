@@ -1,7 +1,7 @@
 # !/usr/bin/env python
 # -*-coding: utf-8 -*-
 """
-# @File    : role.py
+# @File    : roleController.py
 # @Time    : 2022/7/13 14:58
 # @Author  : Shuai
 # @Email   : ls12345666@qq.com
@@ -25,7 +25,7 @@ def getRoleList():
     pageSize = request.args.get("pageSize", type=int)
 
     # 查询所有角色
-    roles = Role.query.slice(pageSize * (page - 1), pageSize * page).all()
+    roles = Role.query.order_by(db.asc(Role.sort)).slice(pageSize * (page - 1), pageSize * page).all()
 
     roleList = [r.to_dict() for r in roles]
 
@@ -60,6 +60,7 @@ def getRoleInfo():
         "roleName": db_role.name,
         "roleNickName": db_role.nickname,
         "description": db_role.description,
+        "sort": db_role.sort,
     }
 
     return successResponseWrap(data=roleData)
@@ -73,9 +74,11 @@ def updateRole():
     roleName = request.json.get("roleName")
     roleNickName = request.json.get("roleNickName")
     description = request.json.get("description")
+    sort = request.json.get("sort")
 
     # 更新角色信息
-    Role.query.filter_by(id=roleId).update({"name": roleName, "nickname": roleNickName, "description": description})
+    Role.query.filter_by(id=roleId) \
+        .update({"name": roleName, "nickname": roleNickName, "description": description, "sort": sort})
 
     db.session.commit()
 
@@ -89,9 +92,10 @@ def addRole():
     roleName = request.json.get("roleName")
     roleNickName = request.json.get("roleNickName")
     description = request.json.get("description")
+    sort = request.json.get("sort")
 
     # 添加角色信息
-    roleInfo = Role(name=roleName, nickname=roleNickName, description=description)
+    roleInfo = Role(name=roleName, nickname=roleNickName, description=description, sort=sort)
     db.session.add(roleInfo)
 
     db.session.commit()
@@ -126,7 +130,7 @@ def deleteRole():
 @role.get("/role/permissions/list")
 @permission_required("role:read")
 def getRolePermissionList():
-    db_menu = db.session.query(Menu.id, Menu.title, Menu.pid).all()
+    db_menu = db.session.query(Menu.id, Menu.title, Menu.pid).order_by(db.asc(Menu.sort)).all()
 
     menuList = []
     for menu in db_menu:
