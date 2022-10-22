@@ -1,7 +1,7 @@
 # !/usr/bin/env python3
 # -*-coding: utf-8 -*-
 """
-# @File    : menu.py
+# @File    : menuController.py
 # @Time    : 2022/7/10 17:09
 # @Author  : Shuai
 # @Email   : ls12345666@qq.com
@@ -28,7 +28,7 @@ def menus():
         .join(RoleMenu, UserRole.role_id == RoleMenu.role_id) \
         .join(Menu, RoleMenu.menu_id == Menu.id) \
         .join(User, UserRole.user_id == User.userId) \
-        .filter(User.userId == userId, Menu.type != 2, Menu.hidden == 0, RoleMenu.deleted == 0).all()
+        .filter(User.userId == userId, RoleMenu.deleted == 0, Menu.type != 2).all()
 
     menus = [menu.to_dict() for menu in db_menus]
 
