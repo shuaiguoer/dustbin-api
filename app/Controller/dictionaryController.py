@@ -284,22 +284,11 @@ def deleteDictItem():
     return successResponseWrap("字典项删除成功")
 
 
-# 性别
-@dictionary.get("/dict/gender")
-@jwt_required()
-def getGender():
-    data = [
-        {"label": "女", "value": 0},
-        {"label": "男", "value": 1},
-    ]
-    return successResponseWrap(data=data)
-
-
-# 角色
+# 角色字典
 @dictionary.get("/dict/role")
 @jwt_required()
 def getRole():
-    db_roles = Role.query.all()
+    db_roles = Role.query.order_by(db.asc(Role.sort)).all()
 
     roleDict = [{"label": r.nickname, "value": r.id} for r in db_roles]
 
