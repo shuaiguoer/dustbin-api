@@ -77,6 +77,7 @@ class Role(db.Model, EntityBase):
     name = db.Column(db.String(50), nullable=False, info='角色名称')
     nickname = db.Column(db.String(50), nullable=False, info='中文名称')
     description = db.Column(db.String(255), info='角色描述')
+    sort = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='显示顺序(越小越靠前)')
 
 
 class RoleMenu(db.Model, EntityBase):
