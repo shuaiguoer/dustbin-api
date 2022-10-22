@@ -14,11 +14,11 @@ db = SQLAlchemy()  # 注意：实例化SQLAlchemy的代码必须要在引入蓝�
 mail = Mail()
 
 # 导入蓝图
-from app.views.user import user
-from app.views.menu import menu
-from app.views.role import role
-from app.views.dictionary import dictionary
-from app.views.qrcode import qrcode
+from app.Controller.userController import user
+from app.Controller.menuController import menu
+from app.Controller.roleController import role
+from app.Controller.dictionaryController import dictionary
+from app.Controller.qrcodeController import qrcode
 
 
 def create_app():
@@ -26,10 +26,10 @@ def create_app():
 
     app.logger.addHandler(getLogHandler())
 
-    @app.before_request
-    def log_each_request():
-        app.logger.info(
-            '{} - {} - {}'.format(request.method, request.path, request.remote_addr))
+    # @app.before_request
+    # def log_each_request():
+    #     app.logger.info(
+    #         '{} - {} - {}'.format(request.method, request.path, request.remote_addr))
 
     # 跨域
     CORS(app, supports_credentials=True)
