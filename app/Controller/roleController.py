@@ -154,9 +154,35 @@ def getRolePermissions():
 
     # 查询指定角色的所有权限ID列表
     db_menu_id = db.session.query(RoleMenu.menu_id).filter_by(role_id=roleId, deleted=0).all()
-    menuList = [m[0] for m in db_menu_id]
+    permissionList = [m[0] for m in db_menu_id]
 
-    return successResponseWrap(data=menuList)
+    # 获取所有菜单权限树
+    menuList = []
+    db_menu = db.session.query(Menu.id, Menu.title, Menu.pid).order_by(db.asc(Menu.sort)).all()
+    for menu in db_menu:
+        menuList.append({
+            "key": menu[0],
+            "label": menu[1],
+            "pid": menu[2]
+        })
+    menuTree = generateMenuTree(menuList, 0, "key")
+
+    # 获取所有子树ID
+    ids = []
+
+    def dfs(tree):
+        if "children" not in tree:
+            key = tree.get("key")
+            if permissionList.count(key) == 1:
+                ids.append(key)
+            return
+        for c in tree["children"]:
+            dfs(c)
+
+    for m in menuTree:
+        dfs(m)
+
+    return successResponseWrap(data=ids)
 
 
 # 更新角色权限
@@ -165,6 +191,10 @@ def getRolePermissions():
 def updateRolePermissions():
     roleId = request.json.get("roleId")
     permissionIds = set(request.json.get("permissionIds"))
+    parentPermissionIds = set(request.json.get("parentPermissionIds"))
+
+    # 合并菜单(权限)
+    permissionIds = parentPermissionIds | permissionIds
 
     # 查询角色菜单
     db_role_menu = db.session.query(RoleMenu.menu_id).filter_by(role_id=roleId, deleted=0).all()
