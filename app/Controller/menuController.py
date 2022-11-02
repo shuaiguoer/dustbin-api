@@ -28,7 +28,8 @@ def menus():
         .join(RoleMenu, UserRole.role_id == RoleMenu.role_id) \
         .join(Menu, RoleMenu.menu_id == Menu.id) \
         .join(User, UserRole.user_id == User.userId) \
-        .filter(User.userId == userId, RoleMenu.deleted == 0, Menu.type != 2).all()
+        .filter(User.userId == userId, RoleMenu.deleted == 0, Menu.type != 2, Menu.disabled == 0) \
+        .all()
 
     menus = [menu.to_dict() for menu in db_menus]
 
@@ -54,6 +55,18 @@ def menus():
     return successResponseWrap(data=data)
 
 
+# 获取菜单列表
+@menu.get("/menu/list")
+@permission_required("menu:list")
+def getRolePermissionList():
+    db_menu = Menu.query.order_by(db.asc(Menu.sort)).all()
+
+    menuList = [m.to_dict() for m in db_menu]
+    menuTree = generateMenuTree(menuList, 0)
+
+    return successResponseWrap(data={"list": menuTree})
+
+
 # 获取菜单信息
 @menu.get("/menu/info")
 @permission_required("menu:read")
@@ -69,6 +82,7 @@ def getMenuInfo():
         "path": db_menu.path,
         "redirect": db_menu.redirect,
         "hidden": db_menu.hidden,
+        "disabled": db_menu.disabled,
         "type": db_menu.type,
         "component": db_menu.component,
         "icon": db_menu.icon,
@@ -89,6 +103,7 @@ def updateMenu():
     path = request.json.get("path")
     redirect = request.json.get("redirect")
     hidden = request.json.get("hidden")
+    disabled = request.json.get("disabled")
     menuType = request.json.get("type")
     component = request.json.get("component")
     icon = request.json.get("icon")
@@ -96,8 +111,9 @@ def updateMenu():
     pid = request.json.get("pid")
 
     result = Menu.query.filter_by(id=menuId) \
-        .update({"name": name, "title": title, "path": path, "redirect": redirect, "hidden": hidden, "type": menuType,
-                 "component": component, "icon": icon, "sort": sort, "pid": pid})
+        .update({"name": name, "title": title, "path": path, "redirect": redirect, "hidden": hidden,
+                 "disabled": disabled, "type": menuType, "component": component, "icon": icon, "sort": sort,
+                 "pid": pid})
 
     if not result:
         return failResponseWrap(5001, "没有数据被更新")
@@ -136,14 +152,15 @@ def addMenu():
     path = request.json.get("path") or ''
     redirect = request.json.get("redirect") or ''
     hidden = request.json.get("hidden")
+    disabled = request.json.get("disabled")
     menuType = request.json.get("type")
     component = request.json.get("component") or ''
     icon = request.json.get("icon")
-    sort = request.json.get("sort") or 0
+    sort = request.json.get("sort")
     pid = request.json.get("pid")
 
-    menuInfo = Menu(name=name, title=title, path=path, redirect=redirect, hidden=hidden, type=menuType,
-                    component=component, icon=icon, sort=sort, pid=pid)
+    menuInfo = Menu(name=name, title=title, path=path, redirect=redirect, hidden=hidden, disabled=disabled,
+                    type=menuType, component=component, icon=icon, sort=sort, pid=pid)
     db.session.add(menuInfo)
 
     db.session.commit()
