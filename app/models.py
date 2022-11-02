@@ -53,9 +53,10 @@ class Menu(db.Model, EntityBase):
     redirect = db.Column(db.String(255), info='菜单跳转链接')
     title = db.Column(db.String(50), info='菜单标题')
     icon = db.Column(db.String(50), info='菜单图标名称')
-    hidden = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='菜单: 显示(0)/隐藏(1)')
-    sort = db.Column(db.Integer, nullable=False, info='排序(越小越靠前)')
-    type = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='类型: 菜单(1) 权限(2)')
+    hidden = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='菜单: 显示(0) | 隐藏(1)')
+    disabled = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='停用: 正常(0) | 停用(1)')
+    sort = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='排序(越小越靠前)')
+    type = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='类型: 目录(0) 菜单(1) 权限(2)')
     pid = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='父菜单ID')
 
 
