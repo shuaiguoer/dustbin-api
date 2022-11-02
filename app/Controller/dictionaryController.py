@@ -26,7 +26,7 @@ def getDictList():
 
     filter_params = []
     if dictName:
-        filter_params.append(Dict.name.like(f"%{dictName}%"))
+        filter_params.append(db.or_(Dict.name.like(f"%{dictName}%"), Dict.type.like(f"%{dictName}%")))
 
     db_dict = Dict.query.filter(*filter_params).limit(pageSize).offset(pageSize * (page - 1)).all()
 
