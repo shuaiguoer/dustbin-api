@@ -22,6 +22,7 @@ from app.utils.ConnectionRedis import redisConnection
 from app.utils.Encrypt import md5
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
 from app.utils.SendMail import send_email
+from app.utils.WriteLog import writeLoginLog
 
 user = Blueprint('user', __name__)
 
@@ -34,18 +35,26 @@ def login():
     LOGIN_ERR_MAX = current_app.config.get('LOGIN_ERR_MAX')
     LOGIN_LOCK_TIME = current_app.config.get('LOGIN_LOCK_TIME')
 
-    db_user = db.session.query(User.userId, User.password) \
-        .filter(db.or_(User.username == username, User.email == username)).first()
+    db_user = db.session.query(User.userId, User.password, User.username) \
+        .filter(db.or_(User.username == username, User.email == username)) \
+        .first()
 
     if db_user is None:
+        # 记录日志
+        writeLoginLog(username=username, status=1, msg="用户不存在", request=request)
+
         return failResponseWrap(2004, "用户不存在")
 
     # 连接Redis
-    redis2 = redisConnection(2)
+    rdb_pwd_err_cnt = redisConnection(2)
 
     # 如果用户ID存在, 并且错误登录次数 大于 错误登录次数最大限制
-    if redis2.exists(db_user.userId) and int(redis2.get(db_user.userId)) >= LOGIN_ERR_MAX:
-        return failResponseWrap(2003, f"您登录失败的次数过多! 请等待 {redis2.ttl(db_user.userId)} 秒后重试!")
+    if rdb_pwd_err_cnt.exists(db_user.userId) and int(rdb_pwd_err_cnt.get(db_user.userId)) >= LOGIN_ERR_MAX:
+        # 记录日志
+        writeLoginLog(username=db_user.username, status=1,
+                      msg=f"登陆次数过多, 已被锁定; 距离解锁: {rdb_pwd_err_cnt.ttl(db_user.id)} 秒", request=request)
+
+        return failResponseWrap(2003, f"您登录失败的次数过多! 请等待 {rdb_pwd_err_cnt.ttl(db_user.userId)} 秒后重试!")
 
     # 密码加密
     password = md5(password)
@@ -53,30 +62,38 @@ def login():
     # 密码错误
     if password != db_user.password:
         #  向Redis中写入错误次数
-        redis2.incr(db_user.userId)
+        rdb_pwd_err_cnt.incr(db_user.userId)
 
         # 获取错误登录次数
-        login_err_quantity = int(redis2.get(db_user.userId))
+        login_err_quantity = int(rdb_pwd_err_cnt.get(db_user.userId))
 
         # 错误登录次数 对比 错误登录最大限制次数
         if login_err_quantity < LOGIN_ERR_MAX:
             # 设置过期时间
-            redis2.expire(db_user.userId, LOGIN_LOCK_TIME)
+            rdb_pwd_err_cnt.expire(db_user.userId, LOGIN_LOCK_TIME)
         else:
             if login_err_quantity == LOGIN_ERR_MAX:
                 # 设置过期时间
-                redis2.expire(db_user.userId, LOGIN_LOCK_TIME)
-                return failResponseWrap(2003, f"您登录失败的次数过多! 请等待 {redis2.ttl(db_user.userId)} 秒后重试!")
+                rdb_pwd_err_cnt.expire(db_user.userId, LOGIN_LOCK_TIME)
+                return failResponseWrap(2003,
+                                        f"您登录失败的次数过多! 请等待 {rdb_pwd_err_cnt.ttl(db_user.userId)} 秒后重试!")
+
+        # 记录日志
+        writeLoginLog(username=db_user.username, status=1, msg=f"账号或者密码输入错误 {login_err_quantity} 次",
+                      request=request)
 
         return failResponseWrap(2002, f"账号或者密码错误! 剩余重试次数: {LOGIN_ERR_MAX - login_err_quantity}")
 
     # 密码正确
     # 如果存在错误密码次数记录, 则删除
-    if redis2.exists(db_user.userId):
-        redis2.delete(db_user.userId)
+    if rdb_pwd_err_cnt.exists(db_user.userId):
+        rdb_pwd_err_cnt.delete(db_user.userId)
 
     access_token = create_access_token(identity=db_user.userId, fresh=True)
     refresh_token = create_refresh_token(identity=db_user.userId)
+
+    # 记录日志
+    writeLoginLog(username=db_user.username, status=0, msg="登陆成功", request=request)
 
     return successResponseWrap("登陆成功", data={"access_token": access_token, "refresh_token": refresh_token})
 
