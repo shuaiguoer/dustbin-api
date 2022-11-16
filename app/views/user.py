@@ -436,7 +436,7 @@ def resetUserPassword(userId):
 
 
 # 更改个人密码
-@user.put("/user/update/own-password")
+@user.put("/user/own-password/update")
 @jwt_required()
 def updateOwnPassword():
     userId = get_jwt_identity()
@@ -465,7 +465,7 @@ def updateOwnPassword():
 
 
 # 更新个人信息
-@user.put("/user/update/own-info")
+@user.put("/user/own-info/update")
 @jwt_required()
 def updateOwnInfo():
     userId = get_jwt_identity()
@@ -514,7 +514,7 @@ def verificationCode():
 
 
 # 换绑邮箱
-@user.put("/user/update/own-email")
+@user.put("/user/own-email/update")
 @jwt_required()
 def updateOwnEmail():
     userId = get_jwt_identity()
@@ -543,7 +543,7 @@ def updateOwnEmail():
 
 
 # 更新头像
-@user.post("/user/update/avatar")
+@user.post("/user/avatar/update")
 @jwt_required()
 def updateAvatar():
     userId = get_jwt_identity()
