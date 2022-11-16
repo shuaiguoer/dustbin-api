@@ -128,7 +128,7 @@ def getUserInfo():
         "username": user.username,
         "email": user.email,
         "avatar": user.avatar,
-        "gender": user.gender,
+        "gender": str(user.gender),
         "introduction": user.introduction,
         "registration_time": user.registration_time,
         "roleId": user_role.role_id,
