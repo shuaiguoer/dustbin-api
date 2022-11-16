@@ -1,7 +1,5 @@
 # !/usr/bin/env python
 # -*-coding: utf-8 -*-
-# !/usr/bin/env python
-# -*-coding: utf-8 -*-
 import time
 
 from flask import Blueprint, request, redirect, abort
@@ -45,10 +43,9 @@ def getQrcodeList():
         params.append(Qrcode.description.like(f'%{description}%'))
 
     db_qrcodes = Qrcode.query.filter(*params).limit(pageSize).offset(pageSize * (page - 1)).all()
-
     qrcodeList = [qr.to_dict() for qr in db_qrcodes]
 
-    # 查询角色总数量
+    # 查询总数量
     itemCount = db.session.query(db.func.count(Qrcode.id)).filter(*params).scalar()
 
     # 获取总页数

@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask
 from flask_cors import CORS
 from flask_mail import Mail
 from flask_sqlalchemy import SQLAlchemy
@@ -14,17 +14,17 @@ db = SQLAlchemy()  # 注意：实例化SQLAlchemy的代码必须要在引入蓝�
 mail = Mail()
 
 # 导入蓝图
-from app.Controller.userController import user
-from app.Controller.menuController import menu
-from app.Controller.roleController import role
-from app.Controller.dictionaryController import dictionary
-from app.Controller.qrcodeController import qrcode
+from app.views.user import user
+from app.views.menu import menu
+from app.views.role import role
+from app.views.dictionary import dictionary
+from app.views.qrcode import qrcode
 
 
 def create_app():
     app = Flask(__name__, static_folder='../static')
 
-    app.logger.addHandler(getLogHandler())
+    # app.logger.addHandler(getLogHandler())
 
     # @app.before_request
     # def log_each_request():
