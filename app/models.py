@@ -118,6 +118,79 @@ class UserRole(db.Model, EntityBase):
     user = db.relationship('User', primaryjoin='UserRole.user_id == User.userId', backref='user_roles')
 
 
+class Notice(db.Model):
+    __tablename__ = 'notice'
+
+    id = db.Column(db.Integer, primary_key=True, info='消息主键')
+    title = db.Column(db.String(255), nullable=False, info='消息标题')
+    content = db.Column(db.Text, nullable=False, info='消息内容')
+    status = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(),
+                       info='消息状态: 已发: (1), 草稿: (2)')
+    sender_id = db.Column(db.Integer, nullable=False, info='发送者ID')
+    group_id = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='组ID')
+    created_at = db.Column(db.String(20), nullable=False, info='创建时间')
+
+
+class NoticeUser(db.Model):
+    __tablename__ = 'notice_user'
+
+    id = db.Column(db.Integer, primary_key=True, info='用户消息主键')
+    notice_id = db.Column(db.ForeignKey('notice.id'), nullable=False, index=True, info='消息ID')
+    recipient_id = db.Column(db.ForeignKey('user.userId'), nullable=False, index=True, info='接收者ID')
+    state = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='状态: 已读(1) | 未读(0)')
+    created_at = db.Column(db.String(20), nullable=False, info='拉取消息时间')
+    deleted = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(),
+                        info='是否删除: 已删(1) | 未删(0)')
+    read_time = db.Column(db.String(20), info='读取时间')
+
+    notice = db.relationship('Notice', primaryjoin='NoticeUser.notice_id == Notice.id', backref='notice_users')
+    recipient = db.relationship('User', primaryjoin='NoticeUser.recipient_id == User.userId', backref='notice_users')
+
+
+class OperationLog(db.Model):
+    __tablename__ = 'operationLog'
+
+    id = db.Column(db.Integer, primary_key=True, info='操作日志主键ID')
+    username = db.Column(db.String(50), nullable=False, info='操作人员')
+    systemModule = db.Column(db.String(50), nullable=False, info='系统模块')
+    operationType = db.Column(db.Integer, nullable=False, info='操作类型')
+    requestMethod = db.Column(db.String(10), nullable=False, info='请求方式')
+    ipaddr = db.Column(db.String(50), nullable=False, info='IP地址')
+    location = db.Column(db.String(255), nullable=False, info='操作地点')
+    status = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='操作状态')
+    requestPath = db.Column(db.String(255), nullable=False, info='请求地址')
+    requestParam = db.Column(db.Text, info='请求参数')
+    returnParam = db.Column(db.Text, nullable=False, info='返回参数')
+    operation_time = db.Column(db.String(20), nullable=False, info='操作时间')
+
+
+class LoginLog(db.Model):
+    __tablename__ = 'loginLog'
+
+    id = db.Column(db.Integer, primary_key=True, info='登录日志主键ID')
+    username = db.Column(db.String(50), nullable=False, info='用户名称')
+    ipaddr = db.Column(db.String(50), nullable=False, info='IP地址')
+    location = db.Column(db.String(255), nullable=False, info='登录地点')
+    browser = db.Column(db.String(50), nullable=False, info='浏览器')
+    os = db.Column(db.String(50), nullable=False, info='操作系统')
+    device = db.Column(db.String(50), nullable=False, info='设备')
+    status = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='登录状态')
+    msg = db.Column(db.String(50), nullable=False, info='操作信息')
+    login_time = db.Column(db.String(50), nullable=False, info='登录时间')
+
+
+class Action(db.Model):
+    __tablename__ = 'action'
+
+    id = db.Column(db.Integer, primary_key=True, info='动作主键ID')
+    userId = db.Column(db.Integer, nullable=False, info='用户ID')
+    module = db.Column(db.String(50), nullable=False, info='模块')
+    bizNo = db.Column(db.String(50), info='业务编号')
+    operation = db.Column(db.String(50), nullable=False, info='操作')
+    detail = db.Column(db.String(255), info='详情')
+    created_at = db.Column(db.String(20), nullable=False, info='创建时间')
+
+
 if __name__ == '__main__':
     from app import create_app
 
