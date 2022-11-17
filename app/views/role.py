@@ -88,10 +88,11 @@ def updateRole():
     db.session.commit()
 
     # 记录日志
+    successResponse = successResponseWrap("更新成功")
     writeOperationLog(username=myName, systemModule="更新角色", operationType=2, status=0, returnParam=successResponse,
                       request=request)
 
-    return successResponseWrap("更新成功")
+    return successResponse
 
 
 # 添加角色
