@@ -6,3 +6,5 @@ flask_mail==0.9.1
 Flask_SQLAlchemy==2.5.1
 redis==4.3.4
 SQLAlchemy==1.4.39
+requests~=2.28.1
+psutil~=5.9.4
