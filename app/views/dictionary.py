@@ -1,8 +1,5 @@
 # !/usr/bin/env python
 # -*-coding: utf-8 -*-
-# !/usr/bin/env python
-# -*-coding: utf-8 -*-
-
 import time
 
 from flask import Blueprint, request
@@ -29,7 +26,11 @@ def getDictList():
     if dictName:
         filter_params.append(db.or_(Dict.name.like(f"%{dictName}%"), Dict.type.like(f"%{dictName}%")))
 
-    db_dict = Dict.query.filter(*filter_params).limit(pageSize).offset(pageSize * (page - 1)).all()
+    db_dict = Dict.query \
+        .filter(*filter_params) \
+        .order_by(db.desc(Dict.id)) \
+        .limit(pageSize).offset(pageSize * (page - 1)) \
+        .all()
 
     dictList = []
     for d in db_dict:
@@ -193,6 +194,7 @@ def getDictItemList():
 
     db_dictItem = DictItem.query \
         .filter(DictItem.dict_id.in_(dictIds), *filter_params) \
+        .order_by(db.asc(DictItem.sort)) \
         .limit(pageSize).offset(pageSize * (page - 1)) \
         .all()
 
