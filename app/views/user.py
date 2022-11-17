@@ -721,6 +721,7 @@ def forcedLogout():
 
     claims = get_jwt()
     jti = claims["jti"]
+    myName = claims["username"]
 
     rdb_online_users = redisConnection(0)
     rdb_online_users.delete(jti)
@@ -731,4 +732,10 @@ def forcedLogout():
     rdb_blacklist.hmset(refresh_jti, {"username": username})
     rdb_blacklist.expire(refresh_jti, ex)
 
-    return successResponseWrap(f"已发起强退, 将在{access_ex}分钟之内生效!")
+    successResponse = successResponseWrap(f"已发起强退, 将在{access_ex}分钟之内生效!")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="强退用户", operationType=5, status=0, returnParam=successResponse,
+                      request=request)
+
+    return successResponse
