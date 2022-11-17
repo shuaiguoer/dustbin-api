@@ -3,11 +3,13 @@
 import time
 
 from flask import Blueprint, request, redirect, abort
+from flask_jwt_extended import get_jwt
 
 from app import db
 from app.models import Qrcode
 from app.modules.VerifyAuth import permission_required
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
+from app.utils.WriteLog import writeOperationLog
 
 qrcode = Blueprint('qrcode', __name__)
 
@@ -92,6 +94,9 @@ def addQrcode():
     deleted = request.json.get("deleted")
     updated_at = int(round(time.time() * 1000))
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     # 判断源地址是否有重复
     db_qrcode = Qrcode.query.filter_by(source=source).first()
     if db_qrcode:
@@ -102,7 +107,13 @@ def addQrcode():
 
     db.session.commit()
 
-    return successResponseWrap("添加成功")
+    # 记录日志
+    successResponse = successResponseWrap("添加成功")
+    writeOperationLog(username=myName, systemModule="添加二维码", operationType=1, status=0,
+                      returnParam=successResponse,
+                      request=request)
+
+    return successResponse
 
 
 # 更新动态二维码
@@ -116,6 +127,9 @@ def updateQrcode():
     deleted = request.json.get("deleted")
     updated_at = int(round(time.time() * 1000))
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     result = Qrcode.query.filter_by(id=qrcodeId).update(
         {"source": source, "target": target, "description": description, "deleted": deleted, "updated_at": updated_at})
 
@@ -124,7 +138,12 @@ def updateQrcode():
 
     db.session.commit()
 
-    return successResponseWrap("二维码更新成功")
+    # 记录日志
+    successResponse = successResponseWrap("二维码更新成功")
+    writeOperationLog(username=myName, systemModule="更新二维码", operationType=2, status=0,
+                      returnParam=successResponse, request=request)
+
+    return successResponse
 
 
 # 删除动态二维码
@@ -133,6 +152,9 @@ def updateQrcode():
 def deleteQrcode():
     qrcodeId = request.json.get("qrcodeId")
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     result = Qrcode.query.filter_by(id=qrcodeId).delete()
 
     if not result:
@@ -140,4 +162,9 @@ def deleteQrcode():
 
     db.session.commit()
 
-    return successResponseWrap("删除成功")
+    # 记录日志
+    successResponse = successResponseWrap("删除成功")
+    writeOperationLog(username=myName, systemModule="删除二维码", operationType=3, status=0,
+                      returnParam=successResponse, request=request)
+
+    return successResponse

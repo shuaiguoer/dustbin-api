@@ -6,12 +6,13 @@
 import time
 
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt
 
 from app import db
 from app.models import Role, Dict, DictItem
 from app.modules.VerifyAuth import permission_required
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
+from app.utils.WriteLog import writeOperationLog
 
 dictionary = Blueprint('dictionary', __name__)
 
@@ -67,6 +68,9 @@ def updateDict():
     deleted = request.json.get("deleted")
     description = request.json.get("description")
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     db_dict = Dict.query.filter(Dict.type == dictType, Dict.id != key).first()
     if db_dict:
         return failResponseWrap(5003, f"更新失败, 已存在相同类字典类型: {db_dict.name}")
@@ -79,7 +83,13 @@ def updateDict():
 
     db.session.commit()
 
-    return successResponseWrap("字典更新成功")
+    successResponse = successResponseWrap("字典更新成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="更新字典", operationType=2, status=0, returnParam=successResponse,
+                      request=request)
+
+    return successResponse
 
 
 # 新增字典
@@ -91,6 +101,9 @@ def addDict():
     deleted = request.json.get("deleted")
     description = request.json.get("description")
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     db_dict = Dict.query.filter_by(type=dictType).first()
     if db_dict:
         return failResponseWrap(5003, f"添加失败, 已存在相同类字典类型: {db_dict.name}")
@@ -100,7 +113,13 @@ def addDict():
 
     db.session.commit()
 
-    return successResponseWrap("字典添加成功")
+    successResponse = successResponseWrap("字典添加成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="添加字典", operationType=1, status=0, returnParam=successResponse,
+                      request=request)
+
+    return successResponse
 
 
 # 删除字典
@@ -109,6 +128,9 @@ def addDict():
 @jwt_required()
 def deleteDict():
     dictId = request.json.get("dictId")
+
+    claims = get_jwt()
+    myName = claims["username"]
 
     # 获取字典包含的字典项ID
     db_dictItem = DictItem.query.filter_by(dict_id=dictId).all()
@@ -127,7 +149,13 @@ def deleteDict():
 
     db.session.commit()
 
-    return successResponseWrap("字典删除成功")
+    successResponse = successResponseWrap("字典删除成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="删除字典", operationType=3, status=0, returnParam=successResponse,
+                      request=request)
+
+    return successResponse
 
 
 # 获取字典项列表
@@ -230,6 +258,9 @@ def updateDictItem():
     description = request.json.get("description")
     updated_at = int(round(time.time() * 1000))
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     result = DictItem.query.filter_by(id=dictItemId).update(
         {"label": label, "value": value, "sort": sort, "isDefault": isDefault, "deleted": deleted,
          "description": description, "updated_at": updated_at}
@@ -240,7 +271,14 @@ def updateDictItem():
 
     db.session.commit()
 
-    return successResponseWrap("字典项更新成功")
+    successResponse = successResponseWrap("字典项更新成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="更新字典项", operationType=2, status=0,
+                      returnParam=successResponse,
+                      request=request)
+
+    return successResponse
 
 
 # 新增字典项
@@ -256,6 +294,9 @@ def addDictItem():
     description = request.json.get("description")
     updated_at = int(round(time.time() * 1000))
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     db_dict = Dict.query.filter_by(type=dictType).first()
     dictId = db_dict.id
 
@@ -267,7 +308,14 @@ def addDictItem():
 
     db.session.commit()
 
-    return successResponseWrap("字典项添加成功")
+    successResponse = successResponseWrap("字典项添加成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="添加字典项", operationType=1, status=0,
+                      returnParam=successResponse,
+                      request=request)
+
+    return successResponse
 
 
 # 删除字典项
@@ -276,12 +324,21 @@ def addDictItem():
 def deleteDictItem():
     dictItemId = request.json.get("dictItemId")
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     # 删除字典项
     DictItem.query.filter_by(id=dictItemId).delete()
 
     db.session.commit()
 
-    return successResponseWrap("字典项删除成功")
+    successResponse = successResponseWrap("字典项删除成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="删除字典项", operationType=3, status=0,
+                      returnParam=successResponse, request=request)
+
+    return successResponse
 
 
 # 角色字典

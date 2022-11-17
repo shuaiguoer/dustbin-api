@@ -11,7 +11,7 @@ import random
 import time
 
 from flask import Blueprint, request, current_app
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required, get_jwt
 from werkzeug.utils import secure_filename
 
 from app import db
@@ -22,7 +22,7 @@ from app.utils.ConnectionRedis import redisConnection
 from app.utils.Encrypt import md5
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
 from app.utils.SendMail import send_email
-from app.utils.WriteLog import writeLoginLog
+from app.utils.WriteLog import writeLoginLog, writeOperationLog
 
 user = Blueprint('user', __name__)
 
@@ -363,6 +363,9 @@ def addUser():
     introduction = request.json.get("introduction")
     roleId = request.json.get("roleId")
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     # 判断用户名是否存在
     db_user = User.query.filter_by(username=username).first()
     if db_user:
@@ -390,7 +393,13 @@ def addUser():
     # 提交(写入硬盘)
     db.session.commit()
 
-    return successResponseWrap("添加成功")
+    successResponse = successResponseWrap("添加成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="添加用户", operationType=1, status=0, returnParam=successResponse,
+                      request=request)
+
+    return successResponse
 
 
 # 更新用户信息
@@ -404,6 +413,9 @@ def updateUser():
     introduction = request.json.get("introduction")
     roleId = request.json.get("roleId")
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     # 更新用户信息
     User.query.filter_by(userId=userId) \
         .update({"username": username, "email": email, "gender": gender, "introduction": introduction})
@@ -416,13 +428,22 @@ def updateUser():
 
     db.session.commit()
 
-    return successResponseWrap("更新成功")
+    successResponse = successResponseWrap("更新成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="更新用户", operationType=2, status=0, returnParam=successResponse,
+                      request=request)
+
+    return successResponse
 
 
 # 删除用户
 @user.delete("/user/delete/<int:userId>")
 @permission_required("user:delete")
 def deleteUser(userId):
+    claims = get_jwt()
+    myName = claims["username"]
+
     # 删除用户角色关系
     UserRole.query.filter_by(user_id=userId).delete()
 
@@ -434,13 +455,22 @@ def deleteUser(userId):
 
     db.session.commit()
 
-    return successResponseWrap("删除成功")
+    successResponse = successResponseWrap("删除成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="删除用户", operationType=3, status=0, returnParam=successResponse,
+                      request=request)
+
+    return successResponse
 
 
 # 重置用户密码
 @user.put("/user/reset-password/<int:userId>")
 @permission_required("user:update")
 def resetUserPassword(userId):
+    claims = get_jwt()
+    myName = claims["username"]
+
     password = current_app.config.get("DEFAULT_USER_PASSWORD")
     result = User.query.filter_by(userId=userId).update({"password": password})
 
@@ -449,7 +479,13 @@ def resetUserPassword(userId):
 
     db.session.commit()
 
-    return successResponseWrap("密码重置成功")
+    successResponse = successResponseWrap("密码重置成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="重置用户密码", operationType=2, status=0,
+                      returnParam=successResponse, request=request)
+
+    return successResponse
 
 
 # 更改个人密码

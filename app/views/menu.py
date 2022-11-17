@@ -7,13 +7,14 @@
 # @Email   : ls12345666@qq.com
 """
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 
 from app import db
 from app.models import UserRole, RoleMenu, User, Menu, Dict, DictItem
 from app.modules.VerifyAuth import permission_required
 from app.utils.GenerateMenus import generateMenuTree, filterMenuTree
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
+from app.utils.WriteLog import writeOperationLog
 
 menu = Blueprint('menu', __name__)
 
@@ -110,6 +111,9 @@ def updateMenu():
     sort = request.json.get("sort")
     pid = request.json.get("pid")
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     result = Menu.query.filter_by(id=menuId) \
         .update({"name": name, "title": title, "path": path, "redirect": redirect, "hidden": hidden,
                  "disabled": disabled, "type": menuType, "component": component, "icon": icon, "sort": sort,
@@ -120,7 +124,13 @@ def updateMenu():
 
     db.session.commit()
 
-    return successResponseWrap("更新成功")
+    successResponse = successResponseWrap("更新成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="更新菜单", operationType=2, status=0, returnParam=successResponse,
+                      request=request)
+
+    return successResponse
 
 
 # 删除菜单
@@ -128,6 +138,9 @@ def updateMenu():
 @permission_required("menu:delete")
 def deleteMenu():
     menuId = request.json.get("menuId")
+
+    claims = get_jwt()
+    myName = claims["username"]
 
     # 删除角色菜单关系
     RoleMenu.query.filter_by(menu_id=menuId).delete()
@@ -140,7 +153,13 @@ def deleteMenu():
 
     db.session.commit()
 
-    return successResponseWrap("删除成功")
+    successResponse = successResponseWrap("删除成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="删除菜单", operationType=3, status=0, returnParam=successResponse,
+                      request=request)
+
+    return successResponse
 
 
 # 添加菜单
@@ -159,10 +178,19 @@ def addMenu():
     sort = request.json.get("sort")
     pid = request.json.get("pid")
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     menuInfo = Menu(name=name, title=title, path=path, redirect=redirect, hidden=hidden, disabled=disabled,
                     type=menuType, component=component, icon=icon, sort=sort, pid=pid)
     db.session.add(menuInfo)
 
     db.session.commit()
 
-    return successResponseWrap("添加成功")
+    successResponse = successResponseWrap("添加成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="添加菜单", operationType=1, status=0, returnParam=successResponse,
+                      request=request)
+
+    return successResponse

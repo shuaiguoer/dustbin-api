@@ -7,12 +7,14 @@
 # @Email   : ls12345666@qq.com
 """
 from flask import Blueprint, request
+from flask_jwt_extended import get_jwt
 
 from app import db
 from app.models import Role, Menu, RoleMenu, UserRole
 from app.modules.VerifyAuth import permission_required
 from app.utils.GenerateMenus import generateMenuTree, filterRoleTree
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
+from app.utils.WriteLog import writeOperationLog
 
 role = Blueprint('role', __name__)
 
@@ -76,11 +78,18 @@ def updateRole():
     description = request.json.get("description")
     sort = request.json.get("sort")
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     # 更新角色信息
     Role.query.filter_by(id=roleId) \
         .update({"name": roleName, "nickname": roleNickName, "description": description, "sort": sort})
 
     db.session.commit()
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="更新角色", operationType=2, status=0, returnParam=successResponse,
+                      request=request)
 
     return successResponseWrap("更新成功")
 
@@ -94,11 +103,20 @@ def addRole():
     description = request.json.get("description")
     sort = request.json.get("sort")
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     # 添加角色信息
     roleInfo = Role(name=roleName, nickname=roleNickName, description=description, sort=sort)
     db.session.add(roleInfo)
 
     db.session.commit()
+
+    successResponse = successResponseWrap("添加成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="添加角色", operationType=1, status=0, returnParam=successResponse,
+                      request=request)
 
     return successResponseWrap("添加成功")
 
@@ -108,6 +126,9 @@ def addRole():
 @permission_required("role:delete")
 def deleteRole():
     roleId = request.json.get("roleId")
+
+    claims = get_jwt()
+    myName = claims["username"]
 
     # 删除角色与菜单的关系
     RoleMenu.query.filter_by(role_id=roleId).delete()
@@ -123,7 +144,13 @@ def deleteRole():
 
     db.session.commit()
 
-    return successResponseWrap("删除成功")
+    successResponse = successResponseWrap("删除成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="删除角色", operationType=3, status=0, returnParam=successResponse,
+                      request=request)
+
+    return successResponse
 
 
 # 获取角色的所有权限列表
@@ -193,6 +220,9 @@ def updateRolePermissions():
     permissionIds = set(request.json.get("permissionIds"))
     parentPermissionIds = set(request.json.get("parentPermissionIds"))
 
+    claims = get_jwt()
+    myName = claims["username"]
+
     # 合并菜单(权限)
     permissionIds = parentPermissionIds | permissionIds
 
@@ -224,4 +254,10 @@ def updateRolePermissions():
 
     db.session.commit()
 
-    return successResponseWrap("更新成功")
+    successResponse = successResponseWrap("角色权限更新成功")
+
+    # 记录日志
+    writeOperationLog(username=myName, systemModule="更新角色", operationType=2, status=0, returnParam=successResponse,
+                      request=request)
+
+    return successResponse
