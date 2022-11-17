@@ -35,6 +35,7 @@ ACCESS_TOKEN_INVALID = (3002, "access_token过期")
 REFRESH_TOKEN_INVALID = (3003, "refresh_token过期")
 DECODE_TOKEN_ERROR = (3004, "token认证失败")
 INVALID_TOKEN_ERROR = (3005, "非法token")
+TOKEN_IN_BLACKLIST = (3006, "您已被管理员强制下线!")
 
 # 系统错误：4001-4999
 SYSTEM_INNER_ERROR = (4001, "系统繁忙，请稍后重试"),

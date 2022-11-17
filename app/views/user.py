@@ -11,10 +11,12 @@ import random
 import time
 
 from flask import Blueprint, request, current_app
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required, get_jwt
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required, get_jwt, \
+    get_jti
 from werkzeug.utils import secure_filename
 
 from app import db
+from app.conf.StatusCode import TOKEN_IN_BLACKLIST
 from app.models import UserRole, RoleMenu, User, Menu, Role
 from app.modules.VerifyAuth import permission_required
 from app.modules.VerifyEmail import verifyEmail
@@ -22,7 +24,7 @@ from app.utils.ConnectionRedis import redisConnection
 from app.utils.Encrypt import md5
 from app.utils.ResponseWrap import successResponseWrap, failResponseWrap
 from app.utils.SendMail import send_email
-from app.utils.WriteLog import writeLoginLog, writeOperationLog
+from app.utils.WriteLog import writeLoginLog, writeOperationLog, getUserLoginInfo
 
 user = Blueprint('user', __name__)
 
@@ -94,7 +96,18 @@ def login():
     refresh_token = create_refresh_token(identity=db_user.userId, additional_claims=additional_claims)
 
     # 记录日志
-    writeLoginLog(username=db_user.username, status=0, msg="登陆成功", request=request)
+    login_log = writeLoginLog(username=db_user.username, status=0, msg="登陆成功", request=request)
+
+    # 传入refresh_jti字段
+    refresh_jti = get_jti(refresh_token)
+    login_log["refresh_jti"] = refresh_jti
+
+    # 记录在线用户
+    jti = get_jti(access_token)
+    ex = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES").seconds
+    rdb_online_users = redisConnection(0)
+    rdb_online_users.hmset(jti, login_log)
+    rdb_online_users.expire(jti, ex)
 
     return successResponseWrap("登陆成功", data={"access_token": access_token, "refresh_token": refresh_token})
 
@@ -106,9 +119,26 @@ def refresh():
     identity = get_jwt_identity()
     claims = get_jwt()
     username = claims["username"]
+    refresh_jti = claims["jti"]
+
+    # 效验refresh_token是否在黑名单中
+    rdb_blacklist = redisConnection(1)
+    if rdb_blacklist.exists(refresh_jti):
+        return failResponseWrap(*TOKEN_IN_BLACKLIST)
 
     additional_claims = {"username": username}
     access_token = create_access_token(identity=identity, fresh=False, additional_claims=additional_claims)
+
+    # 记录在线用户
+    login_info = getUserLoginInfo(username=username, request=request)
+    # 传入refresh_jti字段
+    login_info["refresh_jti"] = refresh_jti
+    jti = get_jti(access_token)
+
+    ex = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES").seconds
+    rdb_online_users = redisConnection(0)
+    rdb_online_users.hmset(jti, login_info)
+    rdb_online_users.expire(jti, ex)
 
     return successResponseWrap("刷新成功", data={"access_token": access_token})
 
@@ -651,3 +681,54 @@ def updateAvatar():
         return successResponseWrap("上传成功")
 
     return failResponseWrap(-1, "上传失败")
+
+
+# 用户登出
+@user.post("/user/logout")
+@jwt_required()
+def logout():
+    refresh_token = request.json.get("refresh_token")
+
+    # 从在线用户中删除
+    claims = get_jwt()
+    jti = claims["jti"]
+
+    rdb_online_users = redisConnection(0)
+    rdb_online_users.delete(jti)
+
+    # 将refresh_token加入黑名单
+    refresh_jti = get_jti(refresh_token)
+
+    username = claims["username"]
+
+    exp = claims["exp"]
+    now = int(round(time.time()))
+    ex = exp - now
+
+    rdb_blacklist = redisConnection(1)
+    rdb_blacklist.hmset(refresh_jti, {"username": username})
+    rdb_blacklist.expire(refresh_jti, ex)
+
+    return successResponseWrap("成功退出登录")
+
+
+# 强制用户登出
+@user.post("/user/forced-logout")
+@permission_required("user:forced-logout")
+def forcedLogout():
+    refresh_jti = request.json.get("jti")
+    username = request.json.get("username")
+
+    claims = get_jwt()
+    jti = claims["jti"]
+
+    rdb_online_users = redisConnection(0)
+    rdb_online_users.delete(jti)
+
+    ex = current_app.config.get("JWT_REFRESH_TOKEN_EXPIRES").days * 24 * 60 * 60
+    access_ex = int(current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES").seconds / 60)
+    rdb_blacklist = redisConnection(1)
+    rdb_blacklist.hmset(refresh_jti, {"username": username})
+    rdb_blacklist.expire(refresh_jti, ex)
+
+    return successResponseWrap(f"已发起强退, 将在{access_ex}分钟之内生效!")
