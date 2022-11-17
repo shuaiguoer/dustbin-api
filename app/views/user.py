@@ -89,8 +89,9 @@ def login():
     if rdb_pwd_err_cnt.exists(db_user.userId):
         rdb_pwd_err_cnt.delete(db_user.userId)
 
-    access_token = create_access_token(identity=db_user.userId, fresh=True)
-    refresh_token = create_refresh_token(identity=db_user.userId)
+    additional_claims = {"username": db_user.username}
+    access_token = create_access_token(identity=db_user.userId, fresh=True, additional_claims=additional_claims)
+    refresh_token = create_refresh_token(identity=db_user.userId, additional_claims=additional_claims)
 
     # 记录日志
     writeLoginLog(username=db_user.username, status=0, msg="登陆成功", request=request)
@@ -103,8 +104,12 @@ def login():
 @jwt_required(refresh=True)
 def refresh():
     identity = get_jwt_identity()
+    claims = get_jwt()
+    username = claims["username"]
 
-    access_token = create_access_token(identity=identity, fresh=False)
+    additional_claims = {"username": username}
+    access_token = create_access_token(identity=identity, fresh=False, additional_claims=additional_claims)
+
     return successResponseWrap("刷新成功", data={"access_token": access_token})
 
 
