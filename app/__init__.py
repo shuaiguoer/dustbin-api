@@ -21,6 +21,7 @@ from app.views.dictionary import dictionary
 from app.views.qrcode import qrcode
 from app.views.log import log
 from app.views.monitor import monitor
+from app.views.notice import notice
 
 
 def create_app():
@@ -56,5 +57,6 @@ def create_app():
     app.register_blueprint(qrcode)
     app.register_blueprint(log)
     app.register_blueprint(monitor)
+    app.register_blueprint(notice)
 
     return app

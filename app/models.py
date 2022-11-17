@@ -127,7 +127,6 @@ class Notice(db.Model):
     status = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(),
                        info='消息状态: 已发: (1), 草稿: (2)')
     sender_id = db.Column(db.Integer, nullable=False, info='发送者ID')
-    group_id = db.Column(db.Integer, nullable=False, server_default=db.FetchedValue(), info='组ID')
     created_at = db.Column(db.String(20), nullable=False, info='创建时间')
 
 
