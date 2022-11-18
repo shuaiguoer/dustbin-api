@@ -16,7 +16,6 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 from werkzeug.utils import secure_filename
 
 from app import db
-from app.conf.StatusCode import TOKEN_IN_BLACKLIST
 from app.models import UserRole, RoleMenu, User, Menu, Role
 from app.modules.VerifyAuth import permission_required
 from app.modules.VerifyEmail import verifyEmail
@@ -61,78 +60,66 @@ def login():
     # 密码加密
     password = md5(password)
 
-    # 密码错误
-    if password != db_user.password:
-        #  向Redis中写入错误次数
-        rdb_pwd_err_cnt.incr(db_user.userId)
+    # 如果密码正确
+    if password == db_user.password:
+        # 如果存在错误密码次数记录, 则删除
+        if rdb_pwd_err_cnt.exists(db_user.userId):
+            rdb_pwd_err_cnt.delete(db_user.userId)
 
-        # 获取错误登录次数
-        login_err_quantity = int(rdb_pwd_err_cnt.get(db_user.userId))
-
-        # 错误登录次数 对比 错误登录最大限制次数
-        if login_err_quantity < LOGIN_ERR_MAX:
-            # 设置过期时间
-            rdb_pwd_err_cnt.expire(db_user.userId, LOGIN_LOCK_TIME)
-        else:
-            if login_err_quantity == LOGIN_ERR_MAX:
-                # 设置过期时间
-                rdb_pwd_err_cnt.expire(db_user.userId, LOGIN_LOCK_TIME)
-                return failResponseWrap(2003,
-                                        f"您登录失败的次数过多! 请等待 {rdb_pwd_err_cnt.ttl(db_user.userId)} 秒后重试!")
+        additional_claims = {"username": db_user.username}
+        access_token = create_access_token(identity=db_user.userId, fresh=True, additional_claims=additional_claims)
+        refresh_token = create_refresh_token(identity=db_user.userId, additional_claims=additional_claims)
 
         # 记录日志
-        writeLoginLog(username=db_user.username, status=1, msg=f"账号或者密码输入错误 {login_err_quantity} 次",
-                      request=request)
+        login_log = writeLoginLog(username=db_user.username, status=0, msg="登陆成功", request=request)
 
-        return failResponseWrap(2002, f"账号或者密码错误! 剩余重试次数: {LOGIN_ERR_MAX - login_err_quantity}")
+        # 记录在线用户
+        jti = get_jti(access_token)
+        ex = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES").seconds
+        rdb_online_users = redisConnection(0)
+        rdb_online_users.hmset(jti, login_log)
+        rdb_online_users.expire(jti, ex)
 
-    # 密码正确
-    # 如果存在错误密码次数记录, 则删除
-    if rdb_pwd_err_cnt.exists(db_user.userId):
-        rdb_pwd_err_cnt.delete(db_user.userId)
+        return successResponseWrap("登陆成功", data={"access_token": access_token, "refresh_token": refresh_token})
 
-    additional_claims = {"username": db_user.username}
-    access_token = create_access_token(identity=db_user.userId, fresh=True, additional_claims=additional_claims)
-    refresh_token = create_refresh_token(identity=db_user.userId, additional_claims=additional_claims)
+    # 密码错误
+    #  向Redis中写入错误次数
+    rdb_pwd_err_cnt.incr(db_user.userId)
+
+    # 获取错误登录次数
+    login_err_quantity = int(rdb_pwd_err_cnt.get(db_user.userId))
+
+    # 错误登录次数 对比 错误登录最大限制次数
+    if login_err_quantity < LOGIN_ERR_MAX:
+        # 设置过期时间
+        rdb_pwd_err_cnt.expire(db_user.userId, LOGIN_LOCK_TIME)
+    else:
+        if login_err_quantity == LOGIN_ERR_MAX:
+            # 设置过期时间
+            rdb_pwd_err_cnt.expire(db_user.userId, LOGIN_LOCK_TIME)
+            return failResponseWrap(2003,
+                                    f"您登录失败的次数过多! 请等待 {rdb_pwd_err_cnt.ttl(db_user.userId)} 秒后重试!")
 
     # 记录日志
-    login_log = writeLoginLog(username=db_user.username, status=0, msg="登陆成功", request=request)
+    writeLoginLog(username=db_user.username, status=1, msg=f"账号或者密码输入错误 {login_err_quantity} 次",
+                  request=request)
 
-    # 传入refresh_jti字段
-    refresh_jti = get_jti(refresh_token)
-    login_log["refresh_jti"] = refresh_jti
-
-    # 记录在线用户
-    jti = get_jti(access_token)
-    ex = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES").seconds
-    rdb_online_users = redisConnection(0)
-    rdb_online_users.hmset(jti, login_log)
-    rdb_online_users.expire(jti, ex)
-
-    return successResponseWrap("登陆成功", data={"access_token": access_token, "refresh_token": refresh_token})
+    return failResponseWrap(2002, f"账号或者密码错误! 剩余重试次数: {LOGIN_ERR_MAX - login_err_quantity}")
 
 
 # 刷新JWT
 @user.post("/user/refresh_token")
 @jwt_required(refresh=True)
-def refresh():
+def refreshToken():
     identity = get_jwt_identity()
     claims = get_jwt()
     username = claims["username"]
-    refresh_jti = claims["jti"]
-
-    # 效验refresh_token是否在黑名单中
-    rdb_blacklist = redisConnection(1)
-    if rdb_blacklist.exists(refresh_jti):
-        return failResponseWrap(*TOKEN_IN_BLACKLIST)
 
     additional_claims = {"username": username}
     access_token = create_access_token(identity=identity, fresh=False, additional_claims=additional_claims)
 
     # 记录在线用户
     login_info = getUserLoginInfo(username=username, request=request)
-    # 传入refresh_jti字段
-    login_info["refresh_jti"] = refresh_jti
     jti = get_jti(access_token)
 
     ex = current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES").seconds
@@ -716,23 +703,21 @@ def logout():
 @user.post("/user/forced-logout")
 @permission_required("user:forced-logout")
 def forcedLogout():
-    refresh_jti = request.json.get("jti")
+    jti = request.json.get("jti")
     username = request.json.get("username")
 
     claims = get_jwt()
-    jti = claims["jti"]
     myName = claims["username"]
 
     rdb_online_users = redisConnection(0)
     rdb_online_users.delete(jti)
 
     ex = current_app.config.get("JWT_REFRESH_TOKEN_EXPIRES").days * 24 * 60 * 60
-    access_ex = int(current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES").seconds / 60)
     rdb_blacklist = redisConnection(1)
-    rdb_blacklist.hmset(refresh_jti, {"username": username})
-    rdb_blacklist.expire(refresh_jti, ex)
+    rdb_blacklist.hmset(jti, {"username": username})
+    rdb_blacklist.expire(jti, ex)
 
-    successResponse = successResponseWrap(f"已发起强退, 将在{access_ex}分钟之内生效!")
+    successResponse = successResponseWrap(f"已将用户 {username} 强退!")
 
     # 记录日志
     writeOperationLog(username=myName, systemModule="强退用户", operationType=5, status=0, returnParam=successResponse,

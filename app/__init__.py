@@ -1,11 +1,14 @@
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
+from flask_jwt_extended import get_jti
 from flask_mail import Mail
 from flask_sqlalchemy import SQLAlchemy
 
+from app.conf.StatusCode import TOKEN_IN_BLACKLIST
 from app.conf.settings import Config
-from app.modules.LogHandler import getLogHandler
+from app.utils.ConnectionRedis import redisConnection
 from app.utils.JWTLoader import jwt
+from app.utils.ResponseWrap import failResponseWrap
 
 # 实例化SQLAlchemy
 db = SQLAlchemy()  # 注意：实例化SQLAlchemy的代码必须要在引入蓝图之前
@@ -27,13 +30,6 @@ from app.views.notice import notice
 def create_app():
     app = Flask(__name__, static_folder='../static')
 
-    # app.logger.addHandler(getLogHandler())
-
-    # @app.before_request
-    # def log_each_request():
-    #     app.logger.info(
-    #         '{} - {} - {}'.format(request.method, request.path, request.remote_addr))
-
     # 跨域
     CORS(app, supports_credentials=True)
 
@@ -48,6 +44,19 @@ def create_app():
 
     # 初始化Mail
     mail.init_app(app)
+
+    # 在每次请求前运行
+    @app.before_request
+    def before_request():
+        if request.method != "OPTIONS" and "login" not in request.path:
+            # 获取jti
+            token = request.headers.get("Authorization").split(" ")[1]
+            jti = get_jti(token)
+
+            # 效验access_token的jti是否在黑名单中
+            rdb_blacklist = redisConnection(1)
+            if rdb_blacklist.exists(jti):
+                return failResponseWrap(*TOKEN_IN_BLACKLIST)
 
     # 注册蓝图
     app.register_blueprint(user)
