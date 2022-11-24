@@ -40,12 +40,17 @@ def menus():
     # 过滤菜单
     menuList = filterMenuTree(menuTree)
 
+    # 获取字典数据
     dictData = {}
     db_dict = Dict.query.all()
     dictTypeList = [d.type for d in db_dict]
 
     for dt in dictTypeList:
-        db_dictItem = DictItem.query.join(Dict, DictItem.dict_id == Dict.id).filter(Dict.type == dt).all()
+        db_dictItem = DictItem.query \
+            .join(Dict, DictItem.dict_id == Dict.id) \
+            .filter(Dict.type == dt) \
+            .order_by(db.asc(DictItem.sort)) \
+            .all()
         dictData[dt] = [d.to_dict() for d in db_dictItem]
 
     data = {
